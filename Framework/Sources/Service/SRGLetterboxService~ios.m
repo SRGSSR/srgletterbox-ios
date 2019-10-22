@@ -21,7 +21,8 @@
 #import <YYWebImage/YYWebImage.h>
 
 SRGLetterboxCommands SRGLetterboxCommandsDefault = SRGLetterboxCommandSkipForward | SRGLetterboxCommandSkipBackward
-    | SRGLetterboxCommandSeekForward | SRGLetterboxCommandSeekBackward | SRGLetterboxCommandChangePlaybackPosition;
+    | SRGLetterboxCommandSeekForward | SRGLetterboxCommandSeekBackward | SRGLetterboxCommandChangePlaybackPosition
+    | SRGLetterboxCommandLanguageSelection;
 
 NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterboxServiceSettingsDidChangeNotification";
 
@@ -313,6 +314,14 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
         changePlaybackPositionCommand.enabled = NO;
         [changePlaybackPositionCommand srg_addUniqueTarget:self action:@selector(changePlaybackPosition:)];
     }
+
+    MPRemoteCommand *enableLanguageOptionCommand = commandCenter.enableLanguageOptionCommand;
+    enableLanguageOptionCommand.enabled = NO;
+    [enableLanguageOptionCommand srg_addUniqueTarget:self action:@selector(enableLanguageOption:)];
+    
+    MPRemoteCommand *disableLanguageOptionCommand = commandCenter.disableLanguageOptionCommand;
+    disableLanguageOptionCommand.enabled = NO;
+    [disableLanguageOptionCommand srg_addUniqueTarget:self action:@selector(disableLanguageOption:)];
 }
 
 - (void)resetRemoteCommandCenter
@@ -359,12 +368,20 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
     MPRemoteCommand *nextTrackCommand = commandCenter.nextTrackCommand;
     nextTrackCommand.enabled = NO;
     [nextTrackCommand srg_addUniqueTarget:self action:@selector(doNothing:)];
-    
+
     if (@available(iOS 9.1, *)) {
         MPRemoteCommand *changePlaybackPositionCommand = commandCenter.changePlaybackPositionCommand;
         changePlaybackPositionCommand.enabled = NO;
         [changePlaybackPositionCommand srg_addUniqueTarget:self action:@selector(doNothing:)];
     }
+
+    MPRemoteCommand *enableLanguageOptionCommand = commandCenter.enableLanguageOptionCommand;
+    enableLanguageOptionCommand.enabled = NO;
+    [enableLanguageOptionCommand srg_addUniqueTarget:self action:@selector(doNothing:)];
+    
+    MPRemoteCommand *disableLanguageOptionCommand = commandCenter.disableLanguageOptionCommand;
+    disableLanguageOptionCommand.enabled = NO;
+    [disableLanguageOptionCommand srg_addUniqueTarget:self action:@selector(doNothing:)];
 }
 
 - (void)updateRemoteCommandCenterWithController:(SRGLetterboxController *)controller
@@ -394,6 +411,9 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
         if (@available(iOS 9.1, *)) {
             commandCenter.changePlaybackPositionCommand.enabled = (self.allowedCommands & SRGLetterboxCommandChangePlaybackPosition) && SRG_CMTIMERANGE_IS_NOT_EMPTY(controller.timeRange);
         }
+
+        commandCenter.enableLanguageOptionCommand.enabled = (self.allowedCommands & SRGLetterboxCommandLanguageSelection);
+        commandCenter.disableLanguageOptionCommand.enabled = (self.allowedCommands & SRGLetterboxCommandLanguageSelection);
     }
     else {
         commandCenter.playCommand.enabled = NO;
@@ -405,10 +425,13 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
         commandCenter.seekBackwardCommand.enabled = NO;
         commandCenter.nextTrackCommand.enabled = NO;
         commandCenter.previousTrackCommand.enabled = NO;
-        
+
         if (@available(iOS 9.1, *)) {
             commandCenter.changePlaybackPositionCommand.enabled = NO;
         }
+
+        commandCenter.enableLanguageOptionCommand.enabled = NO;
+        commandCenter.disableLanguageOptionCommand.enabled = NO;
     }
 }
 
@@ -516,6 +539,37 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
     if (@available(iOS 10, *)) {
         nowPlayingInfo[MPNowPlayingInfoPropertyIsLiveStream] = @(mediaPlayerController.live);
     }
+    
+    // Audio tracks and subtitles
+    NSMutableArray<MPNowPlayingInfoLanguageOptionGroup *> *languageOptionGroups = [NSMutableArray array];
+    NSMutableArray<MPNowPlayingInfoLanguageOption *> *currentLanguageOptions = [NSMutableArray array];
+    
+    AVPlayerItem *playerItem = mediaPlayerController.player.currentItem;
+    AVAsset *asset = playerItem.asset;
+    if ([asset statusOfValueForKey:@keypath(asset.availableMediaCharacteristicsWithMediaSelectionOptions) error:NULL] == AVKeyValueStatusLoaded) {
+        AVMediaSelectionGroup *audioGroup = [asset mediaSelectionGroupForMediaCharacteristic:AVMediaCharacteristicAudible];
+        if (audioGroup.options.count > 1) {
+            [languageOptionGroups addObject:[audioGroup makeNowPlayingInfoLanguageOptionGroup]];
+            
+            AVMediaSelectionOption *selectedAudibleOption = [playerItem selectedMediaOptionInMediaSelectionGroup:audioGroup];
+            if (selectedAudibleOption) {
+                [currentLanguageOptions addObject:[selectedAudibleOption makeNowPlayingInfoLanguageOption]];
+            }
+        }
+        
+        AVMediaSelectionGroup *subtitleGroup = [asset mediaSelectionGroupForMediaCharacteristic:AVMediaCharacteristicLegible];
+        if (subtitleGroup) {
+            [languageOptionGroups addObject:[subtitleGroup makeNowPlayingInfoLanguageOptionGroup]];
+        }
+        
+        AVMediaSelectionOption *selectedLegibleOption = [playerItem selectedMediaOptionInMediaSelectionGroup:audioGroup];
+        if (selectedLegibleOption) {
+            [currentLanguageOptions addObject:[selectedLegibleOption makeNowPlayingInfoLanguageOption]];
+        }
+    }
+    
+    nowPlayingInfo[MPNowPlayingInfoPropertyAvailableLanguageOptions] = languageOptionGroups.copy;
+    nowPlayingInfo[MPNowPlayingInfoPropertyCurrentLanguageOptions] = currentLanguageOptions.copy;
     
     MPNowPlayingInfoCenter.defaultCenter.nowPlayingInfo = nowPlayingInfo.copy;
 }
@@ -665,6 +719,19 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
 {
     SRGPosition *position = [SRGPosition positionAroundTime:CMTimeMakeWithSeconds(event.positionTime, NSEC_PER_SEC)];
     [self.controller seekToPosition:position withCompletionHandler:nil];
+    return MPRemoteCommandHandlerStatusSuccess;
+}
+
+- (MPRemoteCommandHandlerStatus)enableLanguageOption:(MPChangeLanguageOptionCommandEvent *)event
+{
+    // TODO: The new option is contained in the event (but not the group, which has probably to be determined by looking
+    //       at all groups and checking which one contains the provided option)
+    return MPRemoteCommandHandlerStatusSuccess;
+}
+
+- (MPRemoteCommandHandlerStatus)disableLanguageOption:(MPRemoteCommandEvent *)event
+{
+    // TODO: Reset
     return MPRemoteCommandHandlerStatusSuccess;
 }
 

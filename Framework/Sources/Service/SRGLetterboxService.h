@@ -23,7 +23,8 @@ typedef NS_OPTIONS(NSInteger, SRGLetterboxCommands) {
     SRGLetterboxCommandSeekForward                  = 1 << 3,           // Seek forward.
     SRGLetterboxCommandPreviousTrack                = 1 << 4,           // Previous track.
     SRGLetterboxCommandNextTrack                    = 1 << 5,           // Next track.
-    SRGLetterboxCommandChangePlaybackPosition       = 1 << 6            // Slider to seek within the media.
+    SRGLetterboxCommandChangePlaybackPosition       = 1 << 6,           // Slider to seek within the media.
+    SRGLetterboxCommandLanguageSelection            = 1 << 7            // Language selection (audio track and subtitles).
 } API_UNAVAILABLE(tvos);
 
 /**
