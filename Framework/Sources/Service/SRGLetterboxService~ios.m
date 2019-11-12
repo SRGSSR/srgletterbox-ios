@@ -8,6 +8,7 @@
 
 #import "MPRemoteCommand+SRGLetterbox.h"
 #import "SRGLetterboxController+Private.h"
+#import "SRGLetterboxLogger.h"
 #import "SRGProgram+SRGLetterbox.h"
 #import "UIDevice+SRGLetterbox.h"
 #import "UIImage+SRGLetterbox.h"
@@ -127,6 +128,9 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
         [NSNotificationCenter.defaultCenter removeObserver:self
                                                       name:SRGLetterboxMetadataDidChangeNotification
                                                     object:_controller];
+        [NSNotificationCenter.defaultCenter removeObserver:self
+                                                      name:SRGMediaPlayerPlaybackStateDidChangeNotification
+                                                    object:previousMediaPlayerController];
         
         [previousMediaPlayerController removePeriodicTimeObserver:self.periodicTimeObserver];
     }
@@ -134,7 +138,8 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
     _controller = controller;
     
     [self updateRemoteCommandCenterWithController:controller];
-    [self updateNowPlayingInformationWithController:controller];
+    [self updateNowPlayingMetadataWithController:controller];
+    [self updateNowPlayingPlaybackStateWithController:controller];
     
     if (controller) {
         controller.playerConfigurationBlock = ^(AVPlayer *player) {
@@ -182,11 +187,14 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
                                                selector:@selector(metadataDidChange:)
                                                    name:SRGLetterboxMetadataDidChangeNotification
                                                  object:controller];
+        [NSNotificationCenter.defaultCenter addObserver:self
+                                               selector:@selector(playbackStateDidChange:)
+                                                   name:SRGMediaPlayerPlaybackStateDidChangeNotification
+                                                 object:mediaPlayerController];
         
         @weakify(self)
         self.periodicTimeObserver = [mediaPlayerController addPeriodicTimeObserverForInterval:CMTimeMakeWithSeconds(1., NSEC_PER_SEC) queue:NULL usingBlock:^(CMTime time) {
             @strongify(self)
-            [self updateNowPlayingInformationWithController:controller];
             [self updateRemoteCommandCenterWithController:controller];
         }];
     }
@@ -387,11 +395,13 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
     }
 }
 
-- (void)updateNowPlayingInformationWithController:(SRGLetterboxController *)controller
+- (void)updateNowPlayingMetadataWithController:(SRGLetterboxController *)controller
 {
     if (! self.nowPlayingInfoAndCommandsEnabled) {
         return;
     }
+    
+    SRGLetterboxLogDebug(@"service", @"Now playing info metadata update started");
     
     SRGMedia *media = [self nowPlayingMediaForController:controller];
     if (! media) {
@@ -400,7 +410,7 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
         return;
     }
     
-    NSMutableDictionary *nowPlayingInfo = [NSMutableDictionary dictionary];
+    NSMutableDictionary *nowPlayingInfo = MPNowPlayingInfoCenter.defaultCenter.nowPlayingInfo.mutableCopy ?: [NSMutableDictionary dictionary];
     
     switch (media.mediaType) {
         case SRGMediaTypeAudio: {
@@ -466,17 +476,33 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
         nowPlayingInfo[MPMediaItemPropertyArtwork] = [[MPMediaItemArtwork alloc] initWithImage:artworkImage];
     }
     
+    MPNowPlayingInfoCenter.defaultCenter.nowPlayingInfo = nowPlayingInfo.copy;
+}
+
+- (void)updateNowPlayingPlaybackStateWithController:(SRGLetterboxController *)controller
+{
+    if (! self.nowPlayingInfoAndCommandsEnabled) {
+        return;
+    }
+    
+    SRGLetterboxLogDebug(@"service", @"Now playing playback state update started");
+    
     SRGMediaPlayerController *mediaPlayerController = controller.mediaPlayerController;
+    
+    NSMutableDictionary *nowPlayingInfo = MPNowPlayingInfoCenter.defaultCenter.nowPlayingInfo.mutableCopy ?: [NSMutableDictionary dictionary];
     
     CMTimeRange timeRange = mediaPlayerController.timeRange;
     nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = @(CMTimeGetSeconds(CMTimeSubtract(mediaPlayerController.currentTime, timeRange.start)));
     nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = @(CMTimeGetSeconds(timeRange.duration));
     
+    // Provide rate information so that the information can be interpolated whithout the need for continuous updates
+    nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = @(mediaPlayerController.player.rate);
+    
     // Available starting with iOS 10. When this property is set to YES the playback button is a play / stop button
     // on iOS 10, a play / pause button on iOS 11 and above, and LIVE is displayed instead of time progress.
     // TODO: Remove when the minimum required version is iOS 10
     if (@available(iOS 10, *)) {
-        nowPlayingInfo[MPNowPlayingInfoPropertyIsLiveStream] = @(mediaPlayerController.isLive);
+        nowPlayingInfo[MPNowPlayingInfoPropertyIsLiveStream] = @(mediaPlayerController.live);
     }
     
     MPNowPlayingInfoCenter.defaultCenter.nowPlayingInfo = nowPlayingInfo.copy;
@@ -535,6 +561,8 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
             NSURL *placeholderImageURL = [UIImage srg_URLForVectorImageAtPath:SRGLetterboxFilePathForImagePlaceholder(SRGLetterboxImagePlaceholderArtwork) withSize:size];
             UIImage *placeholderImage = [UIImage imageWithContentsOfFile:placeholderImageURL.path];
             
+            SRGLetterboxLogDebug(@"service", @"Artwork image update triggered");
+            
             // Request the image when not available. Calling -cachedArtworkImageForController:withSize: will then return
             // it when it has been downloaded.
             self.imageOperation = [[YYWebImageManager sharedManager] requestImageWithURL:artworkURL options:0 progress:nil transform:nil completion:^(UIImage * _Nullable image, NSURL * _Nonnull url, YYWebImageFromType from, YYWebImageStage stage, NSError * _Nullable error) {
@@ -546,6 +574,7 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
                     self.cachedArtworkURL = placeholderImageURL;
                     self.cachedArtworkImage = placeholderImage;
                 }
+                [self updateNowPlayingMetadataWithController:controller];
             }];
             
             // Keep the current artwork during retrieval (even if it does not match) for smoother transitions, or use
@@ -563,6 +592,8 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
     self.cachedArtworkURL = nil;
     self.cachedArtworkImage = nil;
 }
+
+#pragma mark Remote commands
 
 - (MPRemoteCommandHandlerStatus)play:(MPRemoteCommandEvent *)event
 {
@@ -698,7 +729,12 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
 
 - (void)metadataDidChange:(NSNotification *)notification
 {
-    [self updateNowPlayingInformationWithController:self.controller];
+    [self updateNowPlayingMetadataWithController:self.controller];
+}
+
+- (void)playbackStateDidChange:(NSNotification *)notification
+{
+    [self updateNowPlayingPlaybackStateWithController:self.controller];
 }
 
 // Update commands while transitioning from / to the background (since control availability might be affected)
