@@ -56,8 +56,8 @@
                                 <constraint firstAttribute="width" priority="999" constant="48" id="7Hd-it-Kg2"/>
                             </constraints>
                             <userDefinedRuntimeAttributes>
-                                <userDefinedRuntimeAttribute type="image" keyPath="viewModeMonoscopicImage" value="view_mode_monoscopic-48"/>
-                                <userDefinedRuntimeAttribute type="image" keyPath="viewModeStereoscopicImage" value="view_mode_stereoscopic-48"/>
+                                <userDefinedRuntimeAttribute type="image" keyPath="viewModeMonoscopicImage" value="view_mode_monoscopic"/>
+                                <userDefinedRuntimeAttribute type="image" keyPath="viewModeStereoscopicImage" value="view_mode_stereoscopic"/>
                             </userDefinedRuntimeAttributes>
                         </view>
                         <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="xno-LT-xef" userLabel="AirPlay Button" customClass="SRGAirPlayButton">
@@ -230,7 +230,7 @@
         <image name="back_live" width="16" height="16"/>
         <image name="backward" width="16" height="16"/>
         <image name="forward" width="16" height="16"/>
-        <image name="view_mode_monoscopic-48" width="48" height="48"/>
-        <image name="view_mode_stereoscopic-48" width="48" height="48"/>
+        <image name="view_mode_monoscopic" width="48" height="48"/>
+        <image name="view_mode_stereoscopic" width="48" height="48"/>
     </resources>
 </document>
