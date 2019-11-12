@@ -54,7 +54,9 @@ NSString *MMFSwissTXTLiveOnlyURN(NSDate *startDate, NSDate *endDate)
 {
     NSString *description = [NSString stringWithFormat:@"Expectation for notification '%@' from object %@", notificationName, objectToObserve];
     XCTestExpectation *expectation = [self expectationWithDescription:description];
-    __block id observer = [NSNotificationCenter.defaultCenter addObserverForName:notificationName object:objectToObserve queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
+    
+    __block id observer = nil;
+    observer = [NSNotificationCenter.defaultCenter addObserverForName:notificationName object:objectToObserve queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
         void (^fulfill)(void) = ^{
             [expectation fulfill];
             [NSNotificationCenter.defaultCenter removeObserver:observer];
