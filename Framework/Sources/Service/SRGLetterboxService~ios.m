@@ -565,7 +565,10 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
             
             // Request the image when not available. Calling -cachedArtworkImageForController:withSize: will then return
             // it when it has been downloaded.
+            @weakify(controller)
             self.imageOperation = [[YYWebImageManager sharedManager] requestImageWithURL:artworkURL options:0 progress:nil transform:nil completion:^(UIImage * _Nullable image, NSURL * _Nonnull url, YYWebImageFromType from, YYWebImageStage stage, NSError * _Nullable error) {
+                @strongify(controller)
+                
                 if (image) {
                     self.cachedArtworkURL = artworkURL;
                     self.cachedArtworkImage = image;
