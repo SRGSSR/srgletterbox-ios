@@ -59,6 +59,7 @@
     
     if (self.movingFromParentViewController || self.beingDismissed) {
         [self.request cancel];
+        [AVAudioSession.sharedInstance setCategory:AVAudioSessionCategoryPlayback withOptions:0 error:NULL];
     }
 }
 
