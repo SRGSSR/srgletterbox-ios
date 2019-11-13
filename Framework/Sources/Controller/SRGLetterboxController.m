@@ -13,6 +13,7 @@
 #import "SRGLetterboxError.h"
 #import "SRGLetterboxLogger.h"
 #import "SRGMediaComposition+SRGLetterbox.h"
+#import "SRGProgram+SRGLetterbox.h"
 #import "UIDevice+SRGLetterbox.h"
 
 #import <FXReachability/FXReachability.h>
@@ -37,12 +38,14 @@ NSString * const SRGLetterboxMediaKey = @"SRGLetterboxMedia";
 NSString * const SRGLetterboxMediaCompositionKey = @"SRGLetterboxMediaComposition";
 NSString * const SRGLetterboxSubdivisionKey = @"SRGLetterboxSubdivision";
 NSString * const SRGLetterboxChannelKey = @"SRGLetterboxChannel";
+NSString * const SRGLetterboxProgramKey = @"SRGLetterboxProgram";
 
 NSString * const SRGLetterboxPreviousURNKey = @"SRGLetterboxPreviousURN";
 NSString * const SRGLetterboxPreviousMediaKey = @"SRGLetterboxPreviousMedia";
 NSString * const SRGLetterboxPreviousMediaCompositionKey = @"SRGLetterboxPreviousMediaComposition";
 NSString * const SRGLetterboxPreviousSubdivisionKey = @"SRGLetterboxPreviousSubdivision";
 NSString * const SRGLetterboxPreviousChannelKey = @"SRGLetterboxPreviousChannel";
+NSString * const SRGLetterboxPreviousProgramKey = @"SRGLetterboxPreviousProgram";
 
 NSString * const SRGLetterboxPlaybackDidFailNotification = @"SRGLetterboxPlaybackDidFailNotification";
 
@@ -163,6 +166,8 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
 @property (nonatomic, getter=isLoading) BOOL loading;
 @property (nonatomic) SRGMediaPlayerPlaybackState playbackState;
 
+@property (nonatomic) SRGProgram *program;
+
 @property (nonatomic) SRGDataProvider *dataProvider;
 @property (nonatomic) SRGRequestQueue *requestQueue;
 
@@ -178,6 +183,9 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
 
 // Timer for continuous playback
 @property (nonatomic) NSTimer *continuousPlaybackTransitionTimer;
+
+// Time observers
+@property (nonatomic) id programTimeObserver;
 
 @property (nonatomic, copy) void (^playerConfigurationBlock)(AVPlayer *player);
 @property (nonatomic, copy) SRGLetterboxURLOverridingBlock contentURLOverridingBlock;
@@ -249,6 +257,11 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
         // Also register the associated periodic time observers
         self.updateInterval = SRGLetterboxDefaultUpdateInterval;
         self.channelUpdateInterval = SRGLetterboxChannelDefaultUpdateInterval;
+        
+        self.programTimeObserver = [self.mediaPlayerController addPeriodicTimeObserverForInterval:CMTimeMakeWithSeconds(1., NSEC_PER_SEC) queue:NULL usingBlock:^(CMTime time) {
+            @strongify(self)
+            [self updateProgram];
+        }];
         
         self.playbackState = SRGMediaPlayerPlaybackStateIdle;
         
@@ -457,7 +470,6 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
     @weakify(self)
     self.channelUpdateTimer = [NSTimer srgletterbox_timerWithTimeInterval:channelUpdateInterval repeats:YES block:^(NSTimer * _Nonnull timer) {
         @strongify(self)
-        
         [self updateChannel];
     }];
 }
@@ -668,7 +680,7 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
 
 // Pass in which data is available, the method will ensure that the data is consistent based on the most comprehensive
 // information available (media composition first, then media, finally URN). Less comprehensive data will be ignored
-- (void)updateWithURN:(NSString *)URN media:(SRGMedia *)media mediaComposition:(SRGMediaComposition *)mediaComposition subdivision:(SRGSubdivision *)subdivision channel:(SRGChannel *)channel
+- (void)updateWithURN:(NSString *)URN media:(SRGMedia *)media mediaComposition:(SRGMediaComposition *)mediaComposition subdivision:(SRGSubdivision *)subdivision channel:(SRGChannel *)channel program:(SRGProgram *)program
 {
     if (mediaComposition) {
         SRGSubdivision *mainSubdivision = (subdivision && [mediaComposition mediaForSubdivision:subdivision]) ? subdivision : mediaComposition.mainChapter;
@@ -690,44 +702,28 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
     SRGMediaComposition *previousMediaComposition = self.mediaComposition;
     SRGSubdivision *previousSubdivision = self.subdivision;
     SRGChannel *previousChannel = self.channel;
+    SRGProgram *previousProgram = self.program;
     
     self.URN = URN;
     self.media = media;
     self.mediaComposition = mediaComposition;
     self.subdivision = subdivision ?: self.mediaComposition.mainChapter;
     self.channel = channel ?: media.channel;
+    self.program = program;
     
     NSMutableDictionary<NSString *, id> *userInfo = [NSMutableDictionary dictionary];
-    if (URN) {
-        userInfo[SRGLetterboxURNKey] = URN;
-    }
-    if (media) {
-        userInfo[SRGLetterboxMediaKey] = media;
-    }
-    if (mediaComposition) {
-        userInfo[SRGLetterboxMediaCompositionKey] = mediaComposition;
-    }
-    if (subdivision) {
-        userInfo[SRGLetterboxSubdivisionKey] = subdivision;
-    }
-    if (channel) {
-        userInfo[SRGLetterboxChannelKey] = channel;
-    }
-    if (previousURN) {
-        userInfo[SRGLetterboxPreviousURNKey] = previousURN;
-    }
-    if (previousMedia) {
-        userInfo[SRGLetterboxPreviousMediaKey] = previousMedia;
-    }
-    if (previousMediaComposition) {
-        userInfo[SRGLetterboxPreviousMediaCompositionKey] = previousMediaComposition;
-    }
-    if (previousSubdivision) {
-        userInfo[SRGLetterboxPreviousSubdivisionKey] = previousSubdivision;
-    }
-    if (previousChannel) {
-        userInfo[SRGLetterboxPreviousChannelKey] = previousChannel;
-    }
+    userInfo[SRGLetterboxURNKey] = URN;
+    userInfo[SRGLetterboxMediaKey] = media;
+    userInfo[SRGLetterboxMediaCompositionKey] = mediaComposition;
+    userInfo[SRGLetterboxSubdivisionKey] = subdivision;
+    userInfo[SRGLetterboxChannelKey] = channel;
+    userInfo[SRGLetterboxProgramKey] = program;
+    userInfo[SRGLetterboxPreviousURNKey] = previousURN;
+    userInfo[SRGLetterboxPreviousMediaKey] = previousMedia;
+    userInfo[SRGLetterboxPreviousMediaCompositionKey] = previousMediaComposition;
+    userInfo[SRGLetterboxPreviousSubdivisionKey] = previousSubdivision;
+    userInfo[SRGLetterboxPreviousChannelKey] = previousChannel;
+    userInfo[SRGLetterboxPreviousProgramKey] = previousProgram;
     
     // Schedule an update when the media starts
     NSTimeInterval startTimeInterval = [media.startDate timeIntervalSinceNow];
@@ -844,7 +840,7 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
             SRGMedia *previousMedia = self.media;
             
             if (media) {
-                [self updateWithURN:nil media:media mediaComposition:nil subdivision:self.subdivision channel:self.channel];
+                [self updateWithURN:nil media:media mediaComposition:nil subdivision:self.subdivision channel:self.channel program:self.program];
             }
             else {
                 media = previousMedia;
@@ -866,7 +862,7 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
             // Update metadata if retrieved, otherwise perform a check with the metadata we already have
             if (mediaComposition) {
                 self.mediaPlayerController.mediaComposition = mediaComposition;
-                [self updateWithURN:nil media:nil mediaComposition:mediaComposition subdivision:self.subdivision channel:self.channel];
+                [self updateWithURN:nil media:nil mediaComposition:mediaComposition subdivision:self.subdivision channel:self.channel program:self.program];
             }
             else {
                 mediaComposition = previousMediaComposition;
@@ -916,7 +912,8 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
     }
     
     SRGChannelCompletionBlock channelCompletionBlock = ^(SRGChannel * _Nullable channel, NSHTTPURLResponse * _Nullable HTTPResponse, NSError * _Nullable error) {
-        [self updateWithURN:self.URN media:self.media mediaComposition:self.mediaComposition subdivision:self.subdivision channel:channel];
+        SRGProgram *program = [self programForChannel:channel];
+        [self updateWithURN:self.URN media:self.media mediaComposition:self.mediaComposition subdivision:self.subdivision channel:channel program:program];
     };
     
     if (self.media.mediaType == SRGMediaTypeVideo) {
@@ -932,6 +929,31 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
             SRGRequest *request = [self.dataProvider radioChannelForVendor:self.media.vendor withUid:self.media.channel.uid livestreamUid:nil completionBlock:channelCompletionBlock];
             [self.requestQueue addRequest:request resume:YES];
         }
+    }
+}
+
+- (SRGProgram *)programForChannel:(SRGChannel *)channel
+{
+    if (self.media.contentType != SRGContentTypeLivestream || ! channel) {
+        return nil;
+    }
+        
+    NSDate *playbackDate = self.date;
+    if (playbackDate && [channel.currentProgram srgletterbox_containsDate:playbackDate]) {
+        return channel.currentProgram;
+    }
+    else {
+        return nil;
+    }
+}
+
+// TODO: Once program information is returned as segments, program updates can be entirely dropped, as program changes
+//       will be reported via segment transitions.
+- (void)updateProgram
+{
+    SRGProgram *program = [self programForChannel:self.channel];
+    if (program != self.program && ! [program isEqual:self.program]) {
+        [self updateWithURN:self.URN media:self.media mediaComposition:self.mediaComposition subdivision:self.subdivision channel:self.channel program:program];
     }
 }
 
@@ -1036,7 +1058,7 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
         // Update screenType value after metadata update.
         [self.report setString:self.usingAirPlay ? @"airplay" : @"local" forKey:@"screenType"];
         
-        [self updateWithURN:nil media:nil mediaComposition:mediaComposition subdivision:mediaComposition.mainSegment channel:nil];
+        [self updateWithURN:nil media:nil mediaComposition:mediaComposition subdivision:mediaComposition.mainSegment channel:nil program:nil];
         [self updateChannel];
         
         SRGMedia *media = [mediaComposition mediaForSubdivision:mediaComposition.mainChapter];
@@ -1129,7 +1151,7 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
             
             self.dataAvailability = SRGLetterboxDataAvailabilityLoaded;
             
-            [self updateWithURN:nil media:media mediaComposition:nil subdivision:nil channel:nil];
+            [self updateWithURN:nil media:media mediaComposition:nil subdivision:nil channel:nil program:nil];
             [self notifyLivestreamEndWithMedia:media previousMedia:nil];
             
             NSError *blockingReasonError = SRGBlockingReasonErrorForMedia(media, NSDate.date);
@@ -1236,8 +1258,8 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
     self.stopped = NO;
     
     self.lastUpdateDate = nil;
-    
     self.dataAvailability = SRGLetterboxDataAvailabilityNone;
+    self.program = nil;
     
     self.startPosition = nil;
     self.preferredSettings = nil;
@@ -1249,7 +1271,7 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
     
     [self cancelContinuousPlayback];
     
-    [self updateWithURN:URN media:media mediaComposition:nil subdivision:nil channel:nil];
+    [self updateWithURN:URN media:media mediaComposition:nil subdivision:nil channel:nil program:nil];
     
     [self.mediaPlayerController reset];
     [self.requestQueue cancel];
@@ -1307,7 +1329,7 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
         [self stop];
         self.socialCountViewURN = nil;
         self.socialCountViewTimer = nil;
-        [self updateWithURN:nil media:nil mediaComposition:mediaComposition subdivision:subdivision channel:nil];
+        [self updateWithURN:nil media:nil mediaComposition:mediaComposition subdivision:subdivision channel:nil program:nil];
         
         NSDictionary<SRGResourceLoaderOption, id> *options = nil;
         self.report = [self startPlaybackDiagnosticReportForService:SRGLetterboxDiagnosticServiceName withName:subdivision.URN options:&options];
@@ -1332,7 +1354,7 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
     }
     // Playing another segment from the same media. Seek
     else if ([subdivision isKindOfClass:SRGSegment.class]) {
-        [self updateWithURN:nil media:nil mediaComposition:mediaComposition subdivision:subdivision channel:nil];
+        [self updateWithURN:nil media:nil mediaComposition:mediaComposition subdivision:subdivision channel:nil program:nil];
         [self.mediaPlayerController seekToPosition:nil inSegment:(SRGSegment *)subdivision withCompletionHandler:^(BOOL finished) {
             [self.mediaPlayerController play];
             completionHandler ? completionHandler(finished) : nil;
@@ -1670,7 +1692,7 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
 - (void)segmentDidStart:(NSNotification *)notification
 {
     SRGSubdivision *subdivision = notification.userInfo[SRGMediaPlayerSegmentKey];
-    [self updateWithURN:self.URN media:self.media mediaComposition:self.mediaComposition subdivision:subdivision channel:self.channel];
+    [self updateWithURN:self.URN media:self.media mediaComposition:self.mediaComposition subdivision:subdivision channel:self.channel program:self.program];
     
     [NSNotificationCenter.defaultCenter postNotificationName:SRGLetterboxSegmentDidStartNotification
                                                       object:self
@@ -1679,7 +1701,7 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
 
 - (void)segmentDidEnd:(NSNotification *)notification
 {
-    [self updateWithURN:self.URN media:self.media mediaComposition:self.mediaComposition subdivision:nil channel:self.channel];
+    [self updateWithURN:self.URN media:self.media mediaComposition:self.mediaComposition subdivision:nil channel:self.channel program:self.program];
     
     [NSNotificationCenter.defaultCenter postNotificationName:SRGLetterboxSegmentDidEndNotification
                                                       object:self
