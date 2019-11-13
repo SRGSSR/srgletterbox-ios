@@ -576,7 +576,7 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
             [languageOptionGroups addObject:[subtitleGroup makeNowPlayingInfoLanguageOptionGroup]];
         }
         
-        AVMediaSelectionOption *selectedLegibleOption = [playerItem selectedMediaOptionInMediaSelectionGroup:audioGroup];
+        AVMediaSelectionOption *selectedLegibleOption = [playerItem selectedMediaOptionInMediaSelectionGroup:subtitleGroup];
         if (selectedLegibleOption) {
             [currentLanguageOptions addObject:[selectedLegibleOption makeNowPlayingInfoLanguageOption]];
         }
