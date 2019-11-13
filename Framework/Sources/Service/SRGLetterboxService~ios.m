@@ -429,15 +429,13 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
         }
     }
     
-    // Display channel information when available for a livestream (channel information alone does not suffice since
-    // it can also be available for on-demand medias).
+    // Display channel information when available for a livestream (testing channel information alone does not work since
+    // such information can also be available for on-demand medias).
     SRGChannel *channel = controller.channel;
     if (media.contentType == SRGContentTypeLivestream && channel) {
-        // Display program information (if any) when the controller position is within the current program, otherwise channel
-        // information.
-        NSDate *playbackDate = controller.date;
-        if (playbackDate && [channel.currentProgram srgletterbox_containsDate:playbackDate]) {
-            NSString *title = channel.currentProgram.title;
+        SRGProgram *program = controller.program;
+        if (program) {
+            NSString *title = program.title;
             nowPlayingInfo[MPMediaItemPropertyTitle] = title;
             nowPlayingInfo[MPMediaItemPropertyAlbumTitle] = ! [channel.title isEqualToString:title] ? channel.title : @"";
         }
@@ -513,17 +511,14 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
     CGFloat smallestDimension = fmin(size.width, size.height);
     NSURL *artworkURL = nil;
     
-    // Display channel information when available for a livestream (channel information alone does not suffice since
-    // it can also be available for on-demand medias).
-    SRGMedia *media = [self nowPlayingMediaForController:controller];
+    // Display channel information when available for a livestream (testing channel information alone does not work since
+    // such information can also be available for on-demand medias).
     SRGChannel *channel = controller.channel;
-    
+    SRGMedia *media = [self nowPlayingMediaForController:controller];
     if (media.contentType == SRGContentTypeLivestream && channel) {
-        // Display program information (if any) when the controller position is within the current program, otherwise channel
-        // information.
-        NSDate *playbackDate = controller.date;
-        if (playbackDate && [channel.currentProgram srgletterbox_containsDate:playbackDate]) {
-            artworkURL = SRGLetterboxArtworkImageURL(channel.currentProgram, smallestDimension);
+        SRGProgram *program = controller.program;
+        if (program) {
+            artworkURL = SRGLetterboxArtworkImageURL(program, smallestDimension);
             if (! artworkURL) {
                 artworkURL = SRGLetterboxArtworkImageURL(channel, smallestDimension);
             }
