@@ -136,6 +136,12 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
         [NSNotificationCenter.defaultCenter removeObserver:self
                                                       name:SRGMediaPlayerPlaybackStateDidChangeNotification
                                                     object:previousMediaPlayerController];
+        [NSNotificationCenter.defaultCenter removeObserver:self
+                                                      name:SRGMediaPlayerAudioTrackDidChangeNotification
+                                                    object:previousMediaPlayerController];
+        [NSNotificationCenter.defaultCenter removeObserver:self
+                                                      name:SRGMediaPlayerSubtitleTrackDidChangeNotification
+                                                    object:previousMediaPlayerController];
         
         [previousMediaPlayerController removePeriodicTimeObserver:self.periodicTimeObserver];
     }
@@ -198,6 +204,14 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
         [NSNotificationCenter.defaultCenter addObserver:self
                                                selector:@selector(playbackStateDidChange:)
                                                    name:SRGMediaPlayerPlaybackStateDidChangeNotification
+                                                 object:mediaPlayerController];
+        [NSNotificationCenter.defaultCenter addObserver:self
+                                               selector:@selector(audioTrackDidChange:)
+                                                   name:SRGMediaPlayerAudioTrackDidChangeNotification
+                                                 object:mediaPlayerController];
+        [NSNotificationCenter.defaultCenter addObserver:self
+                                               selector:@selector(subtitleTrackDidChange:)
+                                                   name:SRGMediaPlayerSubtitleTrackDidChangeNotification
                                                  object:mediaPlayerController];
         
         @weakify(self)
@@ -724,14 +738,66 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
 
 - (MPRemoteCommandHandlerStatus)enableLanguageOption:(MPChangeLanguageOptionCommandEvent *)event
 {
-    // TODO: The new option is contained in the event (but not the group, which has probably to be determined by looking
-    //       at all groups and checking which one contains the provided option)
+    AVPlayerItem *playerItem = self.controller.mediaPlayerController.player.currentItem;
+    AVAsset *asset = playerItem.asset;
+    if ([asset statusOfValueForKey:@keypath(asset.availableMediaCharacteristicsWithMediaSelectionOptions) error:NULL] != AVKeyValueStatusLoaded) {
+        return MPRemoteCommandHandlerStatusNoSuchContent;
+    }
+    
+    BOOL (^selectLanguageOptionInGroup)(MPNowPlayingInfoLanguageOption *, AVMediaSelectionGroup *) = ^(MPNowPlayingInfoLanguageOption *languageOption, AVMediaSelectionGroup *group) {
+        NSPredicate *predicate = [NSPredicate predicateWithBlock:^BOOL(AVMediaSelectionOption * _Nullable option, NSDictionary<NSString *,id> * _Nullable bindings) {
+            return [option.extendedLanguageTag isEqualToString:languageOption.languageTag];
+        }];
+        AVMediaSelectionOption *option = [[AVMediaSelectionGroup mediaSelectionOptionsFromArray:group.options withMediaCharacteristics:languageOption.languageOptionCharacteristics] filteredArrayUsingPredicate:predicate].firstObject;
+        if (! option) {
+            return NO;
+        }
+        
+        [playerItem selectMediaOption:option inMediaSelectionGroup:group];
+        return YES;
+    };
+    
+    MPNowPlayingInfoLanguageOption *languageOption = event.languageOption;
+    if (languageOption.languageOptionType == MPNowPlayingInfoLanguageOptionTypeLegible) {
+        AVMediaSelectionGroup *group = [asset mediaSelectionGroupForMediaCharacteristic:AVMediaCharacteristicLegible];
+        if ([languageOption isAutomaticLegibleLanguageOption]) {
+            [playerItem selectMediaOptionAutomaticallyInMediaSelectionGroup:group];
+        }
+        else if (! selectLanguageOptionInGroup(languageOption, group)) {
+            return MPRemoteCommandHandlerStatusCommandFailed;
+        }
+    }
+    else {
+        AVMediaSelectionGroup *group = [asset mediaSelectionGroupForMediaCharacteristic:AVMediaCharacteristicAudible];
+        if ([languageOption isAutomaticAudibleLanguageOption]) {
+            [playerItem selectMediaOptionAutomaticallyInMediaSelectionGroup:group];
+        }
+        else if (! selectLanguageOptionInGroup(languageOption, group)) {
+            return MPRemoteCommandHandlerStatusCommandFailed;
+        }
+    }
+    
     return MPRemoteCommandHandlerStatusSuccess;
 }
 
-- (MPRemoteCommandHandlerStatus)disableLanguageOption:(MPRemoteCommandEvent *)event
+- (MPRemoteCommandHandlerStatus)disableLanguageOption:(MPChangeLanguageOptionCommandEvent *)event
 {
-    // TODO: Reset
+    AVPlayerItem *playerItem = self.controller.mediaPlayerController.player.currentItem;
+    AVAsset *asset = playerItem.asset;
+    if ([asset statusOfValueForKey:@keypath(asset.availableMediaCharacteristicsWithMediaSelectionOptions) error:NULL] != AVKeyValueStatusLoaded) {
+        return MPRemoteCommandHandlerStatusNoSuchContent;
+    }
+    
+    MPNowPlayingInfoLanguageOption *languageOption = event.languageOption;
+    if (languageOption.languageOptionType == MPNowPlayingInfoLanguageOptionTypeLegible) {
+        AVMediaSelectionGroup *subtitleGroup = [asset mediaSelectionGroupForMediaCharacteristic:AVMediaCharacteristicLegible];
+        [playerItem selectMediaOption:nil inMediaSelectionGroup:subtitleGroup];
+    }
+    else {
+        AVMediaSelectionGroup *audioGroup = [asset mediaSelectionGroupForMediaCharacteristic:AVMediaCharacteristicAudible];
+        [playerItem selectMediaOption:nil inMediaSelectionGroup:audioGroup];
+    }
+    
     return MPRemoteCommandHandlerStatusSuccess;
 }
 
@@ -824,6 +890,16 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
 }
 
 - (void)playbackStateDidChange:(NSNotification *)notification
+{
+    [self updateNowPlayingInformationWithController:self.controller];
+}
+
+- (void)audioTrackDidChange:(NSNotification *)notification
+{
+    [self updateNowPlayingInformationWithController:self.controller];
+}
+
+- (void)subtitleTrackDidChange:(NSNotification *)notification
 {
     [self updateNowPlayingInformationWithController:self.controller];
 }
