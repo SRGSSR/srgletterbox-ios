@@ -263,7 +263,7 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
         
         self.programTimeObserver = [self.mediaPlayerController addPeriodicTimeObserverForInterval:CMTimeMakeWithSeconds(1., NSEC_PER_SEC) queue:NULL usingBlock:^(CMTime time) {
             @strongify(self)
-            [self updateProgram];
+            [self updateProgramForChannel:self.channel];
         }];
         
         self.playbackState = SRGMediaPlayerPlaybackStateIdle;
@@ -914,7 +914,7 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
     
     SRGChannelCompletionBlock channelCompletionBlock = ^(SRGChannel * _Nullable channel, NSHTTPURLResponse * _Nullable HTTPResponse, NSError * _Nullable error) {
         [self updateWithURN:self.URN media:self.media mediaComposition:self.mediaComposition subdivision:self.subdivision channel:channel];
-        [self updateProgram];
+        [self updateProgramForChannel:channel];
     };
     
     if (self.media.mediaType == SRGMediaTypeVideo) {
@@ -949,9 +949,9 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
 }
 
 // TODO: Not needed if program information is later delivered as highlights (segments).
-- (void)updateProgram
+- (void)updateProgramForChannel:(SRGChannel *)channel
 {
-    SRGProgram *program = [self programForChannel:self.channel];
+    SRGProgram *program = [self programForChannel:channel];
     if (program != self.program && ! [program isEqual:self.program]) {
         self.program = program;
         [NSNotificationCenter.defaultCenter postNotificationName:SRGLetterboxProgramDidChangeNotification
