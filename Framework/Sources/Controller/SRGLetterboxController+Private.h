@@ -23,6 +23,11 @@ OBJC_EXPORT NSString * const SRGLetterboxLivestreamDidFinishNotification;
 OBJC_EXPORT NSString * const SRGLetterboxSocialCountViewWillIncreaseNotification;
 
 /**
+ *  Notification sent when program information did change.
+ */
+OBJC_EXPORT NSString * const SRGLetterboxProgramDidChangeNotification;
+
+/**
  *  Interface for internal use.
  */
 @interface SRGLetterboxController (Private)
@@ -48,6 +53,11 @@ OBJC_EXPORT NSString * const SRGLetterboxSocialCountViewWillIncreaseNotification
  *  Returns `YES` iff the controller is currently used for external AirPlay playback.
  */
 @property (nonatomic, readonly, getter=isUsingAirPlay) BOOL usingAirPlay;
+
+/**
+ *  The program corresponding to the current playback position, if any.
+ */
+@property (nonatomic, readonly, nullable) SRGProgram *program;
 
 /**
  *  Play the upcoming media currently available.
