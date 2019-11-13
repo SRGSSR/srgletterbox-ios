@@ -16,13 +16,14 @@ NS_ASSUME_NONNULL_BEGIN
  *  Available Letterbox commands for playback control remotes, control center and lock screen.
  */
 typedef NS_OPTIONS(NSInteger, SRGLetterboxCommands) {
-    SRGLetterboxCommandMinimal              = 0,                // Minimal controls (play / pause only).
-    SRGLetterboxCommandSkipBackward         = 1 << 0,           // -10 seconds.
-    SRGLetterboxCommandSkipForward          = 1 << 1,           // +30 seconds.
-    SRGLetterboxCommandSeekBackward         = 1 << 2,           // Seek backward.
-    SRGLetterboxCommandSeekForward          = 1 << 3,           // Seek forward.
-    SRGLetterboxCommandPreviousTrack        = 1 << 4,           // Previous track.
-    SRGLetterboxCommandNextTrack            = 1 << 5            // Next track.
+    SRGLetterboxCommandMinimal                      = 0,                // Minimal controls (play / pause only).
+    SRGLetterboxCommandSkipBackward                 = 1 << 0,           // -10 seconds.
+    SRGLetterboxCommandSkipForward                  = 1 << 1,           // +30 seconds.
+    SRGLetterboxCommandSeekBackward                 = 1 << 2,           // Seek backward.
+    SRGLetterboxCommandSeekForward                  = 1 << 3,           // Seek forward.
+    SRGLetterboxCommandPreviousTrack                = 1 << 4,           // Previous track.
+    SRGLetterboxCommandNextTrack                    = 1 << 5,           // Next track.
+    SRGLetterboxCommandChangePlaybackPosition       = 1 << 6            // Slider to seek within the media.
 } API_UNAVAILABLE(tvos);
 
 /**

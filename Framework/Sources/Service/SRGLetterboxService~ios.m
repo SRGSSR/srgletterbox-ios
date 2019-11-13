@@ -20,7 +20,8 @@
 #import <SRGMediaPlayer/SRGMediaPlayer.h>
 #import <YYWebImage/YYWebImage.h>
 
-SRGLetterboxCommands SRGLetterboxCommandsDefault = SRGLetterboxCommandSkipForward | SRGLetterboxCommandSkipBackward | SRGLetterboxCommandSeekForward | SRGLetterboxCommandSeekBackward;
+SRGLetterboxCommands SRGLetterboxCommandsDefault = SRGLetterboxCommandSkipForward | SRGLetterboxCommandSkipBackward
+    | SRGLetterboxCommandSeekForward | SRGLetterboxCommandSeekBackward | SRGLetterboxCommandChangePlaybackPosition;
 
 NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterboxServiceSettingsDidChangeNotification";
 
@@ -306,6 +307,12 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
     MPRemoteCommand *nextTrackCommand = commandCenter.nextTrackCommand;
     nextTrackCommand.enabled = NO;
     [nextTrackCommand srg_addUniqueTarget:self action:@selector(nextTrack:)];
+    
+    if (@available(iOS 9.1, *)) {
+        MPRemoteCommand *changePlaybackPositionCommand = commandCenter.changePlaybackPositionCommand;
+        changePlaybackPositionCommand.enabled = NO;
+        [changePlaybackPositionCommand srg_addUniqueTarget:self action:@selector(changePlaybackPosition:)];
+    }
 }
 
 - (void)resetRemoteCommandCenter
@@ -352,6 +359,12 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
     MPRemoteCommand *nextTrackCommand = commandCenter.nextTrackCommand;
     nextTrackCommand.enabled = NO;
     [nextTrackCommand srg_addUniqueTarget:self action:@selector(doNothing:)];
+    
+    if (@available(iOS 9.1, *)) {
+        MPRemoteCommand *changePlaybackPositionCommand = commandCenter.changePlaybackPositionCommand;
+        changePlaybackPositionCommand.enabled = NO;
+        [changePlaybackPositionCommand srg_addUniqueTarget:self action:@selector(doNothing:)];
+    }
 }
 
 - (void)updateRemoteCommandCenterWithController:(SRGLetterboxController *)controller
@@ -377,6 +390,10 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
         commandCenter.seekBackwardCommand.enabled = (self.allowedCommands & SRGLetterboxCommandSeekBackward);
         commandCenter.nextTrackCommand.enabled = (self.allowedCommands & SRGLetterboxCommandNextTrack) && [controller canPlayNextMedia];
         commandCenter.previousTrackCommand.enabled = (self.allowedCommands & SRGLetterboxCommandPreviousTrack) && [controller canPlayPreviousMedia];
+        
+        if (@available(iOS 9.1, *)) {
+            commandCenter.changePlaybackPositionCommand.enabled = (self.allowedCommands & SRGLetterboxCommandChangePlaybackPosition) && SRG_CMTIMERANGE_IS_NOT_EMPTY(controller.timeRange);
+        }
     }
     else {
         commandCenter.playCommand.enabled = NO;
@@ -388,6 +405,10 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
         commandCenter.seekBackwardCommand.enabled = NO;
         commandCenter.nextTrackCommand.enabled = NO;
         commandCenter.previousTrackCommand.enabled = NO;
+        
+        if (@available(iOS 9.1, *)) {
+            commandCenter.changePlaybackPositionCommand.enabled = NO;
+        }
     }
 }
 
@@ -638,6 +659,13 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
 - (MPRemoteCommandHandlerStatus)nextTrack:(MPRemoteCommandEvent *)event
 {
     return [self.controller playNextMedia] ? MPRemoteCommandHandlerStatusSuccess : MPRemoteCommandHandlerStatusNoSuchContent;
+}
+
+- (MPRemoteCommandHandlerStatus)changePlaybackPosition:(MPChangePlaybackPositionCommandEvent *)event
+{
+    SRGPosition *position = [SRGPosition positionAroundTime:CMTimeMakeWithSeconds(event.positionTime, NSEC_PER_SEC)];
+    [self.controller seekToPosition:position withCompletionHandler:nil];
+    return MPRemoteCommandHandlerStatusSuccess;
 }
 
 - (MPRemoteCommandHandlerStatus)doNothing:(MPRemoteCommandEvent *)event
