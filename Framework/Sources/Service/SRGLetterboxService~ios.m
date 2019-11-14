@@ -721,12 +721,32 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
 
 - (MPRemoteCommandHandlerStatus)previousTrack:(MPRemoteCommandEvent *)event
 {
-    return [self.controller playPreviousMedia] ? MPRemoteCommandHandlerStatusSuccess : MPRemoteCommandHandlerStatusNoSuchContent;
+    if ([self.controller playPreviousMedia]) {
+        return MPRemoteCommandHandlerStatusSuccess;
+    }
+    else {
+        if (@available(iOS 9.1, *)) {
+            return MPRemoteCommandHandlerStatusNoActionableNowPlayingItem;
+        }
+        else {
+            return MPRemoteCommandHandlerStatusNoSuchContent;
+        }
+    }
 }
 
 - (MPRemoteCommandHandlerStatus)nextTrack:(MPRemoteCommandEvent *)event
 {
-    return [self.controller playNextMedia] ? MPRemoteCommandHandlerStatusSuccess : MPRemoteCommandHandlerStatusNoSuchContent;
+    if ([self.controller playNextMedia]) {
+        return MPRemoteCommandHandlerStatusSuccess;
+    }
+    else {
+        if (@available(iOS 9.1, *)) {
+            return MPRemoteCommandHandlerStatusNoActionableNowPlayingItem;
+        }
+        else {
+            return MPRemoteCommandHandlerStatusNoSuchContent;
+        }
+    }
 }
 
 - (MPRemoteCommandHandlerStatus)changePlaybackPosition:(MPChangePlaybackPositionCommandEvent *)event
@@ -741,7 +761,12 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
     AVPlayerItem *playerItem = self.controller.mediaPlayerController.player.currentItem;
     AVAsset *asset = playerItem.asset;
     if ([asset statusOfValueForKey:@keypath(asset.availableMediaCharacteristicsWithMediaSelectionOptions) error:NULL] != AVKeyValueStatusLoaded) {
-        return MPRemoteCommandHandlerStatusNoSuchContent;
+        if (@available(iOS 9.1, *)) {
+            return MPRemoteCommandHandlerStatusNoActionableNowPlayingItem;
+        }
+        else {
+            return MPRemoteCommandHandlerStatusNoSuchContent;
+        }
     }
     
     BOOL (^selectLanguageOptionInGroup)(MPNowPlayingInfoLanguageOption *, AVMediaSelectionGroup *) = ^(MPNowPlayingInfoLanguageOption *languageOption, AVMediaSelectionGroup *group) {
@@ -785,7 +810,12 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
     AVPlayerItem *playerItem = self.controller.mediaPlayerController.player.currentItem;
     AVAsset *asset = playerItem.asset;
     if ([asset statusOfValueForKey:@keypath(asset.availableMediaCharacteristicsWithMediaSelectionOptions) error:NULL] != AVKeyValueStatusLoaded) {
-        return MPRemoteCommandHandlerStatusNoSuchContent;
+        if (@available(iOS 9.1, *)) {
+            return MPRemoteCommandHandlerStatusNoActionableNowPlayingItem;
+        }
+        else {
+            return MPRemoteCommandHandlerStatusNoSuchContent;
+        }
     }
     
     MPNowPlayingInfoLanguageOption *languageOption = event.languageOption;
