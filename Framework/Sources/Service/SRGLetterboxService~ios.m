@@ -26,6 +26,8 @@ SRGLetterboxCommands SRGLetterboxCommandsDefault = SRGLetterboxCommandSkipForwar
 
 NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterboxServiceSettingsDidChangeNotification";
 
+static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGroup(AVMediaSelectionGroup *selectionGroup, BOOL allowEmptySelection);
+
 @interface SRGLetterboxService () <AVPictureInPictureControllerDelegate> {
 @private
     BOOL _restoreUserInterface;
@@ -563,7 +565,7 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
     if ([asset statusOfValueForKey:@keypath(asset.availableMediaCharacteristicsWithMediaSelectionOptions) error:NULL] == AVKeyValueStatusLoaded) {
         AVMediaSelectionGroup *audioGroup = [asset mediaSelectionGroupForMediaCharacteristic:AVMediaCharacteristicAudible];
         if (audioGroup.options.count > 1) {
-            [languageOptionGroups addObject:[audioGroup makeNowPlayingInfoLanguageOptionGroup]];
+            [languageOptionGroups addObject:SRGLetterboxServiceLanguageOptionGroup(audioGroup, NO)];
             
             AVMediaSelectionOption *selectedAudibleOption = [playerItem selectedMediaOptionInMediaSelectionGroup:audioGroup];
             if (selectedAudibleOption) {
@@ -573,7 +575,7 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
         
         AVMediaSelectionGroup *subtitleGroup = [asset mediaSelectionGroupForMediaCharacteristic:AVMediaCharacteristicLegible];
         if (subtitleGroup) {
-            [languageOptionGroups addObject:[subtitleGroup makeNowPlayingInfoLanguageOptionGroup]];
+            [languageOptionGroups addObject:SRGLetterboxServiceLanguageOptionGroup(subtitleGroup, YES)];
         }
         
         AVMediaSelectionOption *selectedLegibleOption = [playerItem selectedMediaOptionInMediaSelectionGroup:subtitleGroup];
@@ -957,3 +959,19 @@ NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterb
 }
 
 @end
+
+#pragma mark Functions
+
+// Cannot use `-makeNowPlayingInfoLanguageOptionGroup` for groups for which Off is not an option.
+static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGroup(AVMediaSelectionGroup *selectionGroup, BOOL allowEmptySelection)
+{
+    NSMutableArray<MPNowPlayingInfoLanguageOption *> *languageOptions = [NSMutableArray array];
+    
+    [selectionGroup.options enumerateObjectsUsingBlock:^(AVMediaSelectionOption * _Nonnull selectionOption, NSUInteger idx, BOOL * _Nonnull stop) {
+        [languageOptions addObject:[selectionOption makeNowPlayingInfoLanguageOption]];
+    }];
+    
+    return [[MPNowPlayingInfoLanguageOptionGroup alloc] initWithLanguageOptions:languageOptions.copy
+                                                          defaultLanguageOption:nil
+                                                            allowEmptySelection:allowEmptySelection];
+}
