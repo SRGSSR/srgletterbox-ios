@@ -169,11 +169,9 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
         AVPictureInPictureController *pictureInPictureController = mediaPlayerController.pictureInPictureController;
         
         if (pictureInPictureController) {
-            @weakify(self)
-            @weakify(pictureInPictureController)
+            @weakify(self) @weakify(pictureInPictureController)
             [pictureInPictureController addObserver:self keyPath:@keypath(pictureInPictureController.pictureInPictureActive) options:0 block:^(MAKVONotification *notification) {
-                @strongify(self)
-                @strongify(pictureInPictureController)
+                @strongify(self) @strongify(pictureInPictureController)
                 
                 // When enabling AirPlay from the control center while picture in picture is active, picture in picture will be
                 // stopped without the usual restoration and stop delegate methods being called. KVO observe changes and call
@@ -529,14 +527,20 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
         //
         // Moreover, a subtle issue might arise if the controller is strongly captured by the block (successive now playing information
         // center updates might deadlock).
-        @weakify(controller)
         nowPlayingInfo[MPMediaItemPropertyArtwork] = [[MPMediaItemArtwork alloc] initWithBoundsSize:maximumSize requestHandler:^UIImage * _Nonnull(CGSize size) {
-            @strongify(controller);
-            return [self cachedArtworkImageForController:controller withSize:size];
+            @weakify(self) @weakify(controller)
+            return [self cachedArtworkImageForController:controller withSize:size completion:^{
+                @strongify(self) @strongify(controller)
+                [self updateNowPlayingInformationWithController:controller];
+            }];
         }];
     }
     else {
-        UIImage *artworkImage = [self cachedArtworkImageForController:controller withSize:maximumSize];
+        @weakify(self) @weakify(controller)
+        UIImage *artworkImage = [self cachedArtworkImageForController:controller withSize:maximumSize completion:^{
+            @strongify(self) @strongify(controller)
+            [self updateNowPlayingInformationWithController:controller];
+        }];
         nowPlayingInfo[MPMediaItemPropertyArtwork] = [[MPMediaItemArtwork alloc] initWithImage:artworkImage];
     }
     
@@ -625,9 +629,9 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
     return artworkURL;
 }
 
-// Return the best available image to display in the control center, performing an update only when an image is not
+// Return the best available image to display in the control center, performing an asynchronous update only when an image is not
 // readily available from the cache
-- (UIImage *)cachedArtworkImageForController:(SRGLetterboxController *)controller withSize:(CGSize)size
+- (UIImage *)cachedArtworkImageForController:(SRGLetterboxController *)controller withSize:(CGSize)size completion:(void (^)(void))completion
 {
     NSURL *artworkURL = [self artworkURLForController:controller withSize:size];
     if (! [artworkURL isEqual:self.cachedArtworkURL] || ! self.cachedArtworkImage) {
@@ -644,12 +648,9 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
             
             SRGLetterboxLogDebug(@"service", @"Artwork image update triggered");
             
-            // Request the image when not available. Calling -cachedArtworkImageForController:withSize: will then return
-            // it when it has been downloaded.
-            @weakify(controller)
+            // Request the image when not available. Calling -cachedArtworkImageForController:withSize: once the completion handler is called
+            // will then return the image immediately
             self.imageOperation = [[YYWebImageManager sharedManager] requestImageWithURL:artworkURL options:0 progress:nil transform:nil completion:^(UIImage * _Nullable image, NSURL * _Nonnull url, YYWebImageFromType from, YYWebImageStage stage, NSError * _Nullable error) {
-                @strongify(controller)
-                
                 if (image) {
                     self.cachedArtworkURL = artworkURL;
                     self.cachedArtworkImage = image;
@@ -658,7 +659,8 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
                     self.cachedArtworkURL = placeholderImageURL;
                     self.cachedArtworkImage = placeholderImage;
                 }
-                [self updateNowPlayingInformationWithController:controller];
+                
+                completion ? completion() : nil;
             }];
             
             // Keep the current artwork during retrieval (even if it does not match) for smoother transitions, or use
