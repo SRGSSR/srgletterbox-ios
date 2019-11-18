@@ -96,7 +96,7 @@
     self.skipToLiveButton.alpha = 0.f;
     
     self.timeSlider.alpha = 0.f;
-    self.timeSlider.resumingAfterSeek = NO;
+    self.timeSlider.resumingAfterSeek = YES;
     self.timeSlider.delegate = self;
     
     self.tracksButton.delegate = self;
