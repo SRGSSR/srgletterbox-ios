@@ -556,7 +556,13 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
     nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = @(CMTimeGetSeconds(timeRange.duration));
     
     // Provide rate information so that the information can be interpolated whithout the need for continuous updates
-    nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = @(mediaPlayerController.player.rate);
+    SRGMediaPlayerPlaybackState playbackState = mediaPlayerController.playbackState;
+    if (playbackState == SRGMediaPlayerPlaybackStatePlaying || playbackState == SRGMediaPlayerPlaybackStateSeeking) {
+        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = @(mediaPlayerController.player.rate);
+    }
+    else {
+        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = @0.;
+    }
     
     // Available starting with iOS 10. When this property is set to YES the playback button is a play / stop button
     // on iOS 10, a play / pause button on iOS 11 and above, and LIVE is displayed instead of time progress.
