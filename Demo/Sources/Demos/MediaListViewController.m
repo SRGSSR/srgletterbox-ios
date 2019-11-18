@@ -371,6 +371,7 @@
     
     cell.textLabel.text = text;
     
+#if TARGET_OS_TV
     if (media.contentType != SRGContentTypeLivestream) {
         NSString *dateString = [NSDateFormatter.letterbox_demo_relativeDateAndTimeFormatter stringFromDate:media.date];
         cell.detailTextLabel.text = dateString;
@@ -380,6 +381,7 @@
         cell.detailTextLabel.text = nil;
         cell.accessibilityLabel = [NSString stringWithFormat:@"%@%@", accessibilityLabelPrefix, text];
     }
+#endif
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
