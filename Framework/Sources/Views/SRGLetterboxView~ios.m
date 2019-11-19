@@ -707,6 +707,7 @@ static void commonInit(SRGLetterboxView *self);
 
 - (void)startPeriodicUpdates
 {
+    // FIXME: Avoid, use KVO if possible
     @weakify(self)
     self.periodicUpdateTimer = [NSTimer srgletterbox_timerWithTimeInterval:1. repeats:YES block:^(NSTimer * _Nonnull timer) {
         @strongify(self)

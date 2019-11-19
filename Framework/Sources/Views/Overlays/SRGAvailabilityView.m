@@ -8,7 +8,6 @@
 
 #import "NSBundle+SRGLetterbox.h"
 #import "NSDateComponentsFormatter+SRGLetterbox.h"
-#import "NSTimer+SRGLetterbox.h"
 #import "SRGCountdownView.h"
 #import "SRGLetterboxControllerView+Subclassing.h"
 #import "SRGLetterboxError.h"

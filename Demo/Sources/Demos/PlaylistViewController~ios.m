@@ -83,12 +83,12 @@
     
     [SRGLetterboxService.sharedService enableWithController:self.letterboxController pictureInPictureDelegate:self];
     
-    [self updatePlaylistButtons];
     @weakify(self)
     [self.letterboxController addPeriodicTimeObserverForInterval:CMTimeMakeWithSeconds(1., NSEC_PER_SEC) queue:NULL usingBlock:^(CMTime time) {
         @strongify(self)
         [self updatePlaylistButtons];
     }];
+    [self updatePlaylistButtons];
     
     self.playbackInformationLabel.text = nil;
     
