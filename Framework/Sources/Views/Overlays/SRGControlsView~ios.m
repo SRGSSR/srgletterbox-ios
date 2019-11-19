@@ -105,7 +105,8 @@
     // the view hierarchy at runtime.
     self.fullScreenPhantomButton.alpha = 0.f;
     
-    self.airPlayButton.image = [UIImage imageNamed:@"airplay" inBundle:NSBundle.srg_letterboxBundle compatibleWithTraitCollection:nil];
+    self.airPlayButton.audioImage = [UIImage imageNamed:@"airplay" inBundle:NSBundle.srg_letterboxBundle compatibleWithTraitCollection:nil];
+    self.airPlayButton.videoImage = [UIImage imageNamed:@"airplay" inBundle:NSBundle.srg_letterboxBundle compatibleWithTraitCollection:nil];
     self.pictureInPictureButton.startImage = [UIImage imageNamed:@"picture_in_picture_start" inBundle:NSBundle.srg_letterboxBundle compatibleWithTraitCollection:nil];
     self.pictureInPictureButton.stopImage = [UIImage imageNamed:@"picture_in_picture_stop" inBundle:NSBundle.srg_letterboxBundle compatibleWithTraitCollection:nil];
     self.tracksButton.image = [UIImage imageNamed:@"subtitles_off" inBundle:NSBundle.srg_letterboxBundle compatibleWithTraitCollection:nil];
