@@ -55,10 +55,6 @@ NSString * const SRGLetterboxLivestreamDidFinishNotification = @"SRGLetterboxLiv
 
 NSString * const SRGLetterboxSocialCountViewWillIncreaseNotification = @"@SRGLetterboxSocialCountViewWillIncreaseNotification";
 
-// TODO: For internal use only at the moment. If program information is later delivered as hightlights (segments), these
-//       can be removed since segment change notifications will be used instead.
-NSString * const SRGLetterboxProgramDidChangeNotification = @"SRGLetterboxProgramDidChangeNotification";
-
 NSString * const SRGLetterboxErrorKey = @"SRGLetterboxError";
 
 static NSString * const SRGLetterboxDiagnosticServiceName = @"SRGPlaybackMetrics";
@@ -954,9 +950,6 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
     SRGProgram *program = [self programForChannel:channel];
     if (program != self.program && ! [program isEqual:self.program]) {
         self.program = program;
-        [NSNotificationCenter.defaultCenter postNotificationName:SRGLetterboxProgramDidChangeNotification
-                                                          object:self
-                                                        userInfo:nil];
     }
 }
 

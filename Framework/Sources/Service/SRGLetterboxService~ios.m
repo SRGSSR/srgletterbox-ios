@@ -125,6 +125,9 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
         _controller.playerConfigurationBlock = nil;
         [_controller reloadPlayerConfiguration];
         
+        // TODO: Not needed if program information is later delivered as highlights (segments).
+        [_controller removeObserver:self keyPath:@keypath(_controller.program)];
+        
         SRGMediaPlayerController *previousMediaPlayerController = _controller.mediaPlayerController;
         [previousMediaPlayerController removeObserver:self keyPath:@keypath(previousMediaPlayerController.timeRange)];
         
@@ -133,9 +136,6 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
         
         [NSNotificationCenter.defaultCenter removeObserver:self
                                                       name:SRGLetterboxMetadataDidChangeNotification
-                                                    object:_controller];
-        [NSNotificationCenter.defaultCenter removeObserver:self
-                                                      name:SRGLetterboxProgramDidChangeNotification
                                                     object:_controller];
         [NSNotificationCenter.defaultCenter removeObserver:self
                                                       name:SRGMediaPlayerPlaybackStateDidChangeNotification
@@ -169,6 +169,11 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
             player.usesExternalPlaybackWhileExternalScreenIsActive = ! self.mirroredOnExternalScreen;
         };
         [controller reloadPlayerConfiguration];
+        
+        // TODO: Not needed if program information is later delivered as highlights (segments).
+        [controller addObserver:self keyPath:@keypath(controller.program) options:0 block:^(MAKVONotification *notification) {
+            [self updateNowPlayingInformationWithController:controller];
+        }];
         
         SRGMediaPlayerController *mediaPlayerController = controller.mediaPlayerController;
         [mediaPlayerController addObserver:self keyPath:@keypath(mediaPlayerController.timeRange) options:0 block:^(MAKVONotification *notification) {
@@ -204,10 +209,6 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
         [NSNotificationCenter.defaultCenter addObserver:self
                                                selector:@selector(metadataDidChange:)
                                                    name:SRGLetterboxMetadataDidChangeNotification
-                                                 object:controller];
-        [NSNotificationCenter.defaultCenter addObserver:self
-                                               selector:@selector(programDidChange:)
-                                                   name:SRGLetterboxProgramDidChangeNotification
                                                  object:controller];
         [NSNotificationCenter.defaultCenter addObserver:self
                                                selector:@selector(playbackStateDidChange:)
@@ -946,11 +947,6 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
 #pragma mark Notifications
 
 - (void)metadataDidChange:(NSNotification *)notification
-{
-    [self updateNowPlayingInformationWithController:self.controller];
-}
-
-- (void)programDidChange:(NSNotification *)notification
 {
     [self updateNowPlayingInformationWithController:self.controller];
 }

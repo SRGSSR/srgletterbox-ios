@@ -23,11 +23,6 @@ OBJC_EXPORT NSString * const SRGLetterboxLivestreamDidFinishNotification;
 OBJC_EXPORT NSString * const SRGLetterboxSocialCountViewWillIncreaseNotification;
 
 /**
- *  Notification sent when program information did change.
- */
-OBJC_EXPORT NSString * const SRGLetterboxProgramDidChangeNotification;
-
-/**
  *  Interface for internal use.
  */
 @interface SRGLetterboxController (Private)
