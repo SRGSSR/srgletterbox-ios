@@ -678,16 +678,18 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
             // Request the image when not available. Calling -cachedArtworkImageForController:withSize: once the completion handler is called
             // will then return the image immediately
             self.imageOperation = [[YYWebImageManager sharedManager] requestImageWithURL:artworkURL options:0 progress:nil transform:nil completion:^(UIImage * _Nullable image, NSURL * _Nonnull url, YYWebImageFromType from, YYWebImageStage stage, NSError * _Nullable error) {
-                if (image) {
-                    self.cachedArtworkURL = artworkURL;
-                    self.cachedArtworkImage = image;
-                }
-                else {
-                    self.cachedArtworkURL = placeholderImageURL;
-                    self.cachedArtworkImage = placeholderImage;
-                }
-                
-                completion ? completion() : nil;
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (image) {
+                        self.cachedArtworkURL = artworkURL;
+                        self.cachedArtworkImage = image;
+                    }
+                    else {
+                        self.cachedArtworkURL = placeholderImageURL;
+                        self.cachedArtworkImage = placeholderImage;
+                    }
+                    
+                    completion ? completion() : nil;
+                });
             }];
             
             // Keep the current artwork during retrieval (even if it does not match) for smoother transitions, or use
