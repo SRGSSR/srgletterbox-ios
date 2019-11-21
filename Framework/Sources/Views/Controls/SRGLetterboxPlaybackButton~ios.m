@@ -14,12 +14,6 @@
 
 static void commonInit(SRGLetterboxPlaybackButton *self);
 
-@interface SRGLetterboxPlaybackButton ()
-
-@property (weak) id periodicTimeObserver;
-
-@end
-
 @implementation SRGLetterboxPlaybackButton
 
 @synthesize imageSet = _imageSet;
@@ -47,7 +41,6 @@ static void commonInit(SRGLetterboxPlaybackButton *self);
 - (void)setController:(SRGLetterboxController *)controller
 {
     if (_controller) {
-        [_controller removePeriodicTimeObserver:self.periodicTimeObserver];
         [NSNotificationCenter.defaultCenter removeObserver:self
                                                       name:SRGLetterboxPlaybackStateDidChangeNotification
                                                     object:_controller];
@@ -57,11 +50,6 @@ static void commonInit(SRGLetterboxPlaybackButton *self);
     [self refresh];
     
     if (controller) {
-        @weakify(self)
-        self.periodicTimeObserver = [controller addPeriodicTimeObserverForInterval:CMTimeMakeWithSeconds(1., NSEC_PER_SEC) queue:NULL usingBlock:^(CMTime time) {
-            @strongify(self)    
-            [self refresh];
-        }];
         [NSNotificationCenter.defaultCenter addObserver:self
                                                selector:@selector(playbackStateDidChange:)
                                                    name:SRGLetterboxPlaybackStateDidChangeNotification

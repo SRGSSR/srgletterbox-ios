@@ -171,7 +171,9 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
         [controller reloadPlayerConfiguration];
         
         // TODO: Not needed if program information is later delivered as highlights (segments).
+        @weakify(controller)
         [controller addObserver:self keyPath:@keypath(controller.program) options:0 block:^(MAKVONotification *notification) {
+            @strongify(controller)
             [self updateNowPlayingInformationWithController:controller];
         }];
         
