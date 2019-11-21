@@ -533,31 +533,12 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
     CGFloat artworkDimension = 256.f * UIScreen.mainScreen.scale;
     CGSize maximumSize = CGSizeMake(artworkDimension, artworkDimension);
     
-    // TODO: Remove when iOS 10 is the minimum supported version
-    if (@available(iOS 10, *)) {
-        // Home artwork retrieval works (because poorly documented):
-        // Images are retrieved when needed by the now playing info center by calling -[MPMediaItemArtwork imageWithSize:]`. Sizes
-        // larger than the bounds size specified at creation will be fixed to the maximum compatible value. The request block itself
-        // must be implemented to return an image of the size it receives as parameter, and is called on a background thread.
-        //
-        // Moreover, a subtle issue might arise if the controller is strongly captured by the block (successive now playing information
-        // center updates might deadlock).
-        nowPlayingInfo[MPMediaItemPropertyArtwork] = [[MPMediaItemArtwork alloc] initWithBoundsSize:maximumSize requestHandler:^UIImage * _Nonnull(CGSize size) {
-            @weakify(self) @weakify(controller)
-            return [self cachedArtworkImageForController:controller withSize:size completion:^{
-                @strongify(self) @strongify(controller)
-                [self updateNowPlayingInformationWithController:controller];
-            }];
-        }];
-    }
-    else {
-        @weakify(self) @weakify(controller)
-        UIImage *artworkImage = [self cachedArtworkImageForController:controller withSize:maximumSize completion:^{
-            @strongify(self) @strongify(controller)
-            [self updateNowPlayingInformationWithController:controller];
-        }];
-        nowPlayingInfo[MPMediaItemPropertyArtwork] = [[MPMediaItemArtwork alloc] initWithImage:artworkImage];
-    }
+    @weakify(self) @weakify(controller)
+    UIImage *artworkImage = [self cachedArtworkImageForController:controller withSize:maximumSize completion:^{
+        @strongify(self) @strongify(controller)
+        [self updateNowPlayingInformationWithController:controller];
+    }];
+    nowPlayingInfo[MPMediaItemPropertyArtwork] = [[MPMediaItemArtwork alloc] initWithImage:artworkImage];
     
     SRGMediaPlayerController *mediaPlayerController = controller.mediaPlayerController;
     
@@ -675,7 +656,7 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
             
             SRGLetterboxLogDebug(@"service", @"Artwork image update triggered");
             
-            // Request the image when not available. Calling -cachedArtworkImageForController:withSize: once the completion handler is called
+            // Request the image when not available. Calling -cachedArtworkImageForController:withSize:completion: once the completion handler is called
             // will then return the image immediately
             self.imageOperation = [[YYWebImageManager sharedManager] requestImageWithURL:artworkURL options:0 progress:nil transform:nil completion:^(UIImage * _Nullable image, NSURL * _Nonnull url, YYWebImageFromType from, YYWebImageStage stage, NSError * _Nullable error) {
                 dispatch_async(dispatch_get_main_queue(), ^{
