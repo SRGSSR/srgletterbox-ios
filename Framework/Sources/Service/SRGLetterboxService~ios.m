@@ -533,12 +533,34 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
     CGFloat artworkDimension = 256.f * UIScreen.mainScreen.scale;
     CGSize maximumSize = CGSizeMake(artworkDimension, artworkDimension);
     
-    @weakify(self) @weakify(controller)
-    UIImage *artworkImage = [self cachedArtworkImageForController:controller withSize:maximumSize completion:^{
-        @strongify(self) @strongify(controller)
-        [self updateNowPlayingInformationWithController:controller];
-    }];
-    nowPlayingInfo[MPMediaItemPropertyArtwork] = [[MPMediaItemArtwork alloc] initWithImage:artworkImage];
+    // TODO: Remove when iOS 10 is the minimum supported version
+    if (@available(iOS 10, *)) {
+        // A subtle issue might arise if the controller is strongly captured by the block (successive now playing information
+        // center updates might deadlock).
+        @weakify(self) @weakify(controller)
+        UIImage *artworkImage = [self cachedArtworkImageForController:controller withSize:maximumSize completion:^{
+            @strongify(self) @strongify(controller)
+            [self updateNowPlayingInformationWithController:controller];
+        }];
+        if (artworkImage) {
+            nowPlayingInfo[MPMediaItemPropertyArtwork] = [[MPMediaItemArtwork alloc] initWithBoundsSize:maximumSize requestHandler:^UIImage * _Nonnull(CGSize size) {
+                // Return the closest image we have, see https://developer.apple.com/videos/play/wwdc2017/251. Here just
+                // the image we retrieved for this specific purpose.
+                return artworkImage;
+            }];
+        }
+        else {
+            nowPlayingInfo[MPMediaItemPropertyArtwork] = nil;
+        }
+    }
+    else {
+        @weakify(self) @weakify(controller)
+        UIImage *artworkImage = [self cachedArtworkImageForController:controller withSize:maximumSize completion:^{
+            @strongify(self) @strongify(controller)
+            [self updateNowPlayingInformationWithController:controller];
+        }];
+        nowPlayingInfo[MPMediaItemPropertyArtwork] = [[MPMediaItemArtwork alloc] initWithImage:artworkImage];
+    }
     
     SRGMediaPlayerController *mediaPlayerController = controller.mediaPlayerController;
     
@@ -656,9 +678,12 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
             
             SRGLetterboxLogDebug(@"service", @"Artwork image update triggered");
             
-            // Request the image when not available. Calling -cachedArtworkImageForController:withSize:completion: once the completion handler is called
+            // Request the image when not available. Calling -cachedArtworkImageForController:withSize: once the completion handler is called
             // will then return the image immediately
+            @weakify(self)
             self.imageOperation = [[YYWebImageManager sharedManager] requestImageWithURL:artworkURL options:0 progress:nil transform:nil completion:^(UIImage * _Nullable image, NSURL * _Nonnull url, YYWebImageFromType from, YYWebImageStage stage, NSError * _Nullable error) {
+                @strongify(self)
+                
                 dispatch_async(dispatch_get_main_queue(), ^{
                     if (image) {
                         self.cachedArtworkURL = artworkURL;
