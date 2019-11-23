@@ -14,21 +14,21 @@ NS_ASSUME_NONNULL_BEGIN
 
 /**
  *  Available Letterbox commands for playback control remotes, control center and lock screen.
+ *
+ *  @discussion Skip commands (if available) take precedence over previous / next track commands.
  */
 typedef NS_OPTIONS(NSInteger, SRGLetterboxCommands) {
     SRGLetterboxCommandMinimal                      = 0,                // Minimal controls (play / pause only).
     SRGLetterboxCommandSkipBackward                 = 1 << 0,           // -10 seconds.
     SRGLetterboxCommandSkipForward                  = 1 << 1,           // +30 seconds.
-    SRGLetterboxCommandSeekBackward                 = 1 << 2,           // Seek backward.
-    SRGLetterboxCommandSeekForward                  = 1 << 3,           // Seek forward.
-    SRGLetterboxCommandPreviousTrack                = 1 << 4,           // Previous track.
-    SRGLetterboxCommandNextTrack                    = 1 << 5,           // Next track.
-    SRGLetterboxCommandChangePlaybackPosition       = 1 << 6,           // Slider to seek within the media.
-    SRGLetterboxCommandLanguageSelection            = 1 << 7            // Language selection (audio track and subtitles).
+    SRGLetterboxCommandPreviousTrack                = 1 << 2,           // Previous track.
+    SRGLetterboxCommandNextTrack                    = 1 << 3,           // Next track.
+    SRGLetterboxCommandChangePlaybackPosition       = 1 << 4,           // Slider to seek within the media.
+    SRGLetterboxCommandLanguageSelection            = 1 << 5            // Language selection (audio track and subtitles; AirPlay only).
 } API_UNAVAILABLE(tvos);
 
 /**
- *  Default set of commands. Seeks and skips are available.
+ *  Default command set
  */
 OBJC_EXPORT SRGLetterboxCommands SRGLetterboxCommandsDefault API_UNAVAILABLE(tvos);
 
@@ -198,7 +198,7 @@ API_UNAVAILABLE(tvos)
 
 /**
  *  Return the set of commands which might be available during playback. Whether or not a command is available or not
- *  ultimately depends on the media being played (e.g. seeks methods are not available if the media is not seekable).
+ *  ultimately depends on the media being played and the current playback position.
  *
  *  The default value is `SRGLetterboxCommandsDefault`.
  */
