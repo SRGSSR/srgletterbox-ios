@@ -151,8 +151,7 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
     
     _controller = controller;
     
-    [self updateRemoteCommandCenterWithController:controller];
-    [self updateNowPlayingInformationWithController:controller];
+    [self updateMetadataWithController:controller];
     
     if (controller) {
         controller.playerConfigurationBlock = ^(AVPlayer *player) {
@@ -175,7 +174,7 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
         
         SRGMediaPlayerController *mediaPlayerController = controller.mediaPlayerController;
         [mediaPlayerController addObserver:self keyPath:@keypath(mediaPlayerController.timeRange) options:0 block:^(MAKVONotification *notification) {
-            [self updateNowPlayingInformationWithController:controller];
+            [self updateMetadataWithController:controller];
         }];
         
         AVPictureInPictureController *pictureInPictureController = mediaPlayerController.pictureInPictureController;
@@ -450,7 +449,7 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
     }
 }
 
-- (void)updateNowPlayingInformationWithController:(SRGLetterboxController *)controller time:(NSValue *)time
+- (void)updateNowPlayingInformationWithController:(SRGLetterboxController *)controller
 {
     if (! self.nowPlayingInfoAndCommandsEnabled) {
         return;
@@ -541,8 +540,8 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
     SRGMediaPlayerController *mediaPlayerController = controller.mediaPlayerController;
     
     CMTimeRange timeRange = mediaPlayerController.timeRange;
-    CMTime currentTime = time ? time.CMTimeValue : mediaPlayerController.currentTime;
-    nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = @(CMTimeGetSeconds(CMTimeSubtract(currentTime, timeRange.start)));
+    CMTime time = CMTIME_IS_INDEFINITE(mediaPlayerController.seekTargetTime) ? mediaPlayerController.currentTime : mediaPlayerController.seekTargetTime;
+    nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = @(CMTimeGetSeconds(CMTimeSubtract(time, timeRange.start)));
     nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = @(CMTimeGetSeconds(timeRange.duration));
     
     // Provide rate information so that the information can be interpolated whithout the need for continuous updates
@@ -597,9 +596,10 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
     MPNowPlayingInfoCenter.defaultCenter.nowPlayingInfo = nowPlayingInfo.copy;
 }
 
-- (void)updateNowPlayingInformationWithController:(SRGLetterboxController *)controller
+- (void)updateMetadataWithController:(SRGLetterboxController *)controller
 {
-    [self updateNowPlayingInformationWithController:controller time:nil];
+    [self updateNowPlayingInformationWithController:controller];
+    [self updateRemoteCommandCenterWithController:controller];
 }
 
 - (NSURL *)artworkURLForController:(SRGLetterboxController *)controller withSize:(CGSize)size
@@ -923,12 +923,12 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
 
 - (void)playbackStateDidChange:(NSNotification *)notification
 {
-    [self updateNowPlayingInformationWithController:self.controller];
+    [self updateMetadataWithController:self.controller];
 }
 
 - (void)playerSeek:(NSNotification *)notification
 {
-    [self updateNowPlayingInformationWithController:self.controller time:notification.userInfo[SRGMediaPlayerSeekTimeKey]];
+    [self updateMetadataWithController:self.controller];
 }
 
 - (void)audioTrackDidChange:(NSNotification *)notification
