@@ -1494,8 +1494,7 @@ static SRGPlaybackSettings *SRGPlaybackSettingsFromLetterboxPlaybackSettings(SRG
         return (streamType == SRGMediaPlayerStreamTypeOnDemand || streamType == SRGMediaPlayerStreamTypeDVR);
     }
     else {
-        return (streamType == SRGMediaPlayerStreamTypeOnDemand && CMTimeGetSeconds(time) + interval < CMTimeGetSeconds(mediaPlayerController.player.currentItem.duration))
-            || (streamType == SRGMediaPlayerStreamTypeDVR && ! mediaPlayerController.live);
+        return CMTIME_COMPARE_INLINE(CMTimeAdd(time, CMTimeMakeWithSeconds(interval, NSEC_PER_SEC)), <=, CMTimeRangeGetEnd(mediaPlayerController.timeRange));
     }
 }
 
