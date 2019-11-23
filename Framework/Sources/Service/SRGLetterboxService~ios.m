@@ -20,9 +20,6 @@
 #import <SRGMediaPlayer/SRGMediaPlayer.h>
 #import <YYWebImage/YYWebImage.h>
 
-SRGLetterboxCommands SRGLetterboxCommandsDefault = SRGLetterboxCommandSkipForward | SRGLetterboxCommandSkipBackward
-    | SRGLetterboxCommandChangePlaybackPosition | SRGLetterboxCommandLanguageSelection;
-
 NSString * const SRGLetterboxServiceSettingsDidChangeNotification = @"SRGLetterboxServiceSettingsDidChangeNotification";
 
 static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGroup(NSArray<AVMediaSelectionOption *> *selectionOption, BOOL allowEmptySelection);

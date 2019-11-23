@@ -28,9 +28,10 @@ typedef NS_OPTIONS(NSInteger, SRGLetterboxCommands) {
 } API_UNAVAILABLE(tvos);
 
 /**
- *  Default command set
+ *  Default command set.
  */
-OBJC_EXPORT SRGLetterboxCommands SRGLetterboxCommandsDefault API_UNAVAILABLE(tvos);
+static SRGLetterboxCommands SRGLetterboxCommandsDefault API_UNAVAILABLE(tvos) = SRGLetterboxCommandSkipForward | SRGLetterboxCommandSkipBackward
+    | SRGLetterboxCommandChangePlaybackPosition | SRGLetterboxCommandLanguageSelection;
 
 /**
  *  Delegate protocol for picture in picture implementation. User interface behavior when entering or exiting picture
