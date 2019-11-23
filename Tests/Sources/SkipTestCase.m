@@ -42,8 +42,8 @@
     [self.controller playURN:OnDemandVideoURN atPosition:nil withPreferredSettings:nil];
     [self waitForExpectationsWithTimeout:30. handler:nil];
     
-    XCTAssertTrue([self.controller canSkipBackward]);
-    XCTAssertTrue([self.controller canSkipForward]);
+    XCTAssertTrue([self.controller canSkipWithInterval:-15.]);
+    XCTAssertTrue([self.controller canSkipWithInterval:15.]);
     
     // Seek to near the end
     [self expectationForSingleNotification:SRGLetterboxPlaybackStateDidChangeNotification object:self.controller handler:^BOOL(NSNotification * _Nonnull notification) {
@@ -55,8 +55,8 @@
     
     [self waitForExpectationsWithTimeout:30. handler:nil];
     
-    XCTAssertTrue([self.controller canSkipBackward]);
-    XCTAssertFalse([self.controller canSkipForward]);
+    XCTAssertTrue([self.controller canSkipWithInterval:-15.]);
+    XCTAssertFalse([self.controller canSkipWithInterval:15.]);
     
     // Seek far enough from the media end
     [self expectationForSingleNotification:SRGLetterboxPlaybackStateDidChangeNotification object:self.controller handler:^BOOL(NSNotification * _Nonnull notification) {
@@ -69,8 +69,8 @@
     }];
     [self waitForExpectationsWithTimeout:30. handler:nil];
     
-    XCTAssertTrue([self.controller canSkipBackward]);
-    XCTAssertTrue([self.controller canSkipForward]);
+    XCTAssertTrue([self.controller canSkipWithInterval:-15.]);
+    XCTAssertTrue([self.controller canSkipWithInterval:15.]);
     
     [self expectationForSingleNotification:SRGLetterboxPlaybackStateDidChangeNotification object:self.controller handler:^BOOL(NSNotification * _Nonnull notification) {
         return [notification.userInfo[SRGMediaPlayerPlaybackStateKey] integerValue] == SRGMediaPlayerPlaybackStatePlaying;
@@ -82,8 +82,8 @@
     }];
     [self waitForExpectationsWithTimeout:30. handler:nil];
     
-    XCTAssertTrue([self.controller canSkipBackward]);
-    XCTAssertFalse([self.controller canSkipForward]);
+    XCTAssertTrue([self.controller canSkipWithInterval:-15.]);
+    XCTAssertFalse([self.controller canSkipWithInterval:15.]);
 }
 
 - (void)testLivestreamSkips
@@ -95,16 +95,16 @@
     [self.controller playURN:LiveOnlyVideoURN atPosition:nil withPreferredSettings:nil];
     [self waitForExpectationsWithTimeout:30. handler:nil];
     
-    XCTAssertFalse([self.controller canSkipBackward]);
-    XCTAssertFalse([self.controller canSkipForward]);
+    XCTAssertFalse([self.controller canSkipWithInterval:-15.]);
+    XCTAssertFalse([self.controller canSkipWithInterval:15.]);
     
     // Cannot skip
-    BOOL skipped1 = [self.controller skipBackwardWithCompletionHandler:^(BOOL finished) {
+    BOOL skipped1 = [self.controller skipWithInterval:-15. completionHandler:^(BOOL finished) {
         XCTFail(@"Must not be called");
     }];
     XCTAssertFalse(skipped1);
     
-    BOOL skipped2 = [self.controller skipForwardWithCompletionHandler:^(BOOL finished) {
+    BOOL skipped2 = [self.controller skipWithInterval:15. completionHandler:^(BOOL finished) {
         XCTFail(@"Must not be called");
     }];
     XCTAssertFalse(skipped2);
@@ -122,8 +122,8 @@
     
     XCTAssertTrue(self.controller.live);
     
-    XCTAssertTrue([self.controller canSkipBackward]);
-    XCTAssertFalse([self.controller canSkipForward]);
+    XCTAssertTrue([self.controller canSkipWithInterval:-15.]);
+    XCTAssertFalse([self.controller canSkipWithInterval:15.]);
     
     // Seek far enough from live conditions
     [self expectationForSingleNotification:SRGLetterboxPlaybackStateDidChangeNotification object:self.controller handler:^BOOL(NSNotification * _Nonnull notification) {
@@ -138,8 +138,8 @@
     
     XCTAssertFalse(self.controller.live);
     
-    XCTAssertTrue([self.controller canSkipBackward]);
-    XCTAssertTrue([self.controller canSkipForward]);
+    XCTAssertTrue([self.controller canSkipWithInterval:-15.]);
+    XCTAssertTrue([self.controller canSkipWithInterval:15.]);
     
     // Skip forward again
     [self expectationForSingleNotification:SRGLetterboxPlaybackStateDidChangeNotification object:self.controller handler:^BOOL(NSNotification * _Nonnull notification) {
@@ -154,8 +154,8 @@
     
     XCTAssertTrue(self.controller.live);
     
-    XCTAssertTrue([self.controller canSkipBackward]);
-    XCTAssertFalse([self.controller canSkipForward]);
+    XCTAssertTrue([self.controller canSkipWithInterval:-15.]);
+    XCTAssertFalse([self.controller canSkipWithInterval:15.]);
 }
 
 - (void)testMultipleSkips
@@ -172,56 +172,56 @@
         return [notification.userInfo[SRGMediaPlayerPlaybackStateKey] integerValue] == SRGMediaPlayerPlaybackStatePlaying;
     }];
     
-    [self.controller skipForwardWithCompletionHandler:^(BOOL finished) {
+    [self.controller skipWithInterval:15. completionHandler:^(BOOL finished) {
         XCTAssertFalse(finished);
     }];
-    [self.controller skipForwardWithCompletionHandler:^(BOOL finished) {
+    [self.controller skipWithInterval:15. completionHandler:^(BOOL finished) {
         XCTAssertTrue(finished);
     }];
     
     [self waitForExpectationsWithTimeout:30. handler:nil];
     
-    XCTAssertTrue([self.controller canSkipBackward]);
+    XCTAssertTrue([self.controller canSkipWithInterval:-15.]);
     
     // Pile up skips backward
     [self expectationForSingleNotification:SRGLetterboxPlaybackStateDidChangeNotification object:self.controller handler:^BOOL(NSNotification * _Nonnull notification) {
         return [notification.userInfo[SRGMediaPlayerPlaybackStateKey] integerValue] == SRGMediaPlayerPlaybackStatePlaying;
     }];
     
-    BOOL skipped1 = [self.controller skipBackwardWithCompletionHandler:^(BOOL finished) {
+    BOOL skipped1 = [self.controller skipWithInterval:-15. completionHandler:^(BOOL finished) {
         XCTAssertFalse(finished);
     }];
     XCTAssertTrue(skipped1);
     
-    BOOL skipped2 = [self.controller skipBackwardWithCompletionHandler:^(BOOL finished) {
+    BOOL skipped2 = [self.controller skipWithInterval:-15. completionHandler:^(BOOL finished) {
         XCTAssertTrue(finished);
     }];
     XCTAssertTrue(skipped2);
     
     [self waitForExpectationsWithTimeout:30. handler:nil];
     
-    XCTAssertTrue([self.controller canSkipBackward]);
+    XCTAssertTrue([self.controller canSkipWithInterval:-15.]);
 }
 
 - (void)testSkipAbilitiesDuringOnDemandStreamPlaybackLifecycle
 {
-    XCTAssertFalse([self.controller canSkipForward]);
-    XCTAssertFalse([self.controller canSkipBackward]);
+    XCTAssertFalse([self.controller canSkipWithInterval:15.]);
+    XCTAssertFalse([self.controller canSkipWithInterval:-15.]);
     XCTAssertFalse([self.controller canSkipToLive]);
     
     __block BOOL preparingReceived = NO;
     __block BOOL playingReceived = NO;
     [self expectationForSingleNotification:SRGLetterboxPlaybackStateDidChangeNotification object:self.controller handler:^BOOL(NSNotification * _Nonnull notification) {
         if ([notification.userInfo[SRGMediaPlayerPlaybackStateKey] integerValue] == SRGMediaPlayerPlaybackStatePreparing) {
-            XCTAssertFalse([self.controller canSkipForward]);
-            XCTAssertFalse([self.controller canSkipBackward]);
+            XCTAssertFalse([self.controller canSkipWithInterval:15.]);
+            XCTAssertFalse([self.controller canSkipWithInterval:-15.]);
             XCTAssertFalse([self.controller canSkipToLive]);
             
             preparingReceived = YES;
         }
         else if ([notification.userInfo[SRGMediaPlayerPlaybackStateKey] integerValue] == SRGMediaPlayerPlaybackStatePlaying) {
-            XCTAssertTrue([self.controller canSkipForward]);
-            XCTAssertTrue([self.controller canSkipBackward]);
+            XCTAssertTrue([self.controller canSkipWithInterval:15.]);
+            XCTAssertTrue([self.controller canSkipWithInterval:-15.]);
             XCTAssertFalse([self.controller canSkipToLive]);
             
             playingReceived = YES;
@@ -241,8 +241,8 @@
     
     [self waitForExpectationsWithTimeout:10. handler:nil];
     
-    XCTAssertTrue([self.controller canSkipForward]);
-    XCTAssertTrue([self.controller canSkipBackward]);
+    XCTAssertTrue([self.controller canSkipWithInterval:15.]);
+    XCTAssertTrue([self.controller canSkipWithInterval:-15.]);
     XCTAssertFalse([self.controller canSkipToLive]);
     
     [self expectationForSingleNotification:SRGLetterboxPlaybackStateDidChangeNotification object:self.controller handler:^BOOL(NSNotification * _Nonnull notification) {
@@ -253,30 +253,30 @@
     
     [self waitForExpectationsWithTimeout:10. handler:nil];
     
-    XCTAssertFalse([self.controller canSkipForward]);
-    XCTAssertFalse([self.controller canSkipBackward]);
+    XCTAssertFalse([self.controller canSkipWithInterval:15.]);
+    XCTAssertFalse([self.controller canSkipWithInterval:-15.]);
     XCTAssertFalse([self.controller canSkipToLive]);
 }
 
 - (void)testSkipAbilitiesDuringDVRLivestreamPlaybackLifecycle
 {
-    XCTAssertFalse([self.controller canSkipForward]);
-    XCTAssertFalse([self.controller canSkipBackward]);
+    XCTAssertFalse([self.controller canSkipWithInterval:15.]);
+    XCTAssertFalse([self.controller canSkipWithInterval:-15.]);
     XCTAssertFalse([self.controller canSkipToLive]);
     
     __block BOOL preparingReceived = NO;
     __block BOOL playingReceived = NO;
     [self expectationForSingleNotification:SRGLetterboxPlaybackStateDidChangeNotification object:self.controller handler:^BOOL(NSNotification * _Nonnull notification) {
         if ([notification.userInfo[SRGMediaPlayerPlaybackStateKey] integerValue] == SRGMediaPlayerPlaybackStatePreparing) {
-            XCTAssertFalse([self.controller canSkipForward]);
-            XCTAssertFalse([self.controller canSkipBackward]);
+            XCTAssertFalse([self.controller canSkipWithInterval:15.]);
+            XCTAssertFalse([self.controller canSkipWithInterval:-15.]);
             XCTAssertFalse([self.controller canSkipToLive]);
             
             preparingReceived = YES;
         }
         else if ([notification.userInfo[SRGMediaPlayerPlaybackStateKey] integerValue] == SRGMediaPlayerPlaybackStatePlaying) {
-            XCTAssertFalse([self.controller canSkipForward]);
-            XCTAssertTrue([self.controller canSkipBackward]);
+            XCTAssertFalse([self.controller canSkipWithInterval:15.]);
+            XCTAssertTrue([self.controller canSkipWithInterval:-15.]);
             XCTAssertFalse([self.controller canSkipToLive]);
             
             playingReceived = YES;
@@ -297,8 +297,8 @@
     
     [self waitForExpectationsWithTimeout:10. handler:nil];
     
-    XCTAssertTrue([self.controller canSkipForward]);
-    XCTAssertTrue([self.controller canSkipBackward]);
+    XCTAssertTrue([self.controller canSkipWithInterval:15.]);
+    XCTAssertTrue([self.controller canSkipWithInterval:-15.]);
     XCTAssertTrue([self.controller canSkipToLive]);
     
     [self expectationForSingleNotification:SRGLetterboxPlaybackStateDidChangeNotification object:self.controller handler:^BOOL(NSNotification * _Nonnull notification) {
@@ -309,30 +309,30 @@
     
     [self waitForExpectationsWithTimeout:10. handler:nil];
     
-    XCTAssertFalse([self.controller canSkipForward]);
-    XCTAssertFalse([self.controller canSkipBackward]);
+    XCTAssertFalse([self.controller canSkipWithInterval:15.]);
+    XCTAssertFalse([self.controller canSkipWithInterval:-15.]);
     XCTAssertFalse([self.controller canSkipToLive]);
 }
 
 - (void)testSkipAbilitiesDuringLiveOnlyStreamPlaybackLifecycle
 {
-    XCTAssertFalse([self.controller canSkipForward]);
-    XCTAssertFalse([self.controller canSkipBackward]);
+    XCTAssertFalse([self.controller canSkipWithInterval:15.]);
+    XCTAssertFalse([self.controller canSkipWithInterval:-15.]);
     XCTAssertFalse([self.controller canSkipToLive]);
     
     __block BOOL preparingReceived = NO;
     __block BOOL playingReceived = NO;
     [self expectationForSingleNotification:SRGLetterboxPlaybackStateDidChangeNotification object:self.controller handler:^BOOL(NSNotification * _Nonnull notification) {
         if ([notification.userInfo[SRGMediaPlayerPlaybackStateKey] integerValue] == SRGMediaPlayerPlaybackStatePreparing) {
-            XCTAssertFalse([self.controller canSkipForward]);
-            XCTAssertFalse([self.controller canSkipBackward]);
+            XCTAssertFalse([self.controller canSkipWithInterval:15.]);
+            XCTAssertFalse([self.controller canSkipWithInterval:-15.]);
             XCTAssertFalse([self.controller canSkipToLive]);
             
             preparingReceived = YES;
         }
         else if ([notification.userInfo[SRGMediaPlayerPlaybackStateKey] integerValue] == SRGMediaPlayerPlaybackStatePlaying) {
-            XCTAssertFalse([self.controller canSkipForward]);
-            XCTAssertFalse([self.controller canSkipBackward]);
+            XCTAssertFalse([self.controller canSkipWithInterval:15.]);
+            XCTAssertFalse([self.controller canSkipWithInterval:-15.]);
             XCTAssertFalse([self.controller canSkipToLive]);
             
             playingReceived = YES;
@@ -344,8 +344,8 @@
     
     [self waitForExpectationsWithTimeout:10. handler:nil];
     
-    XCTAssertFalse([self.controller canSkipForward]);
-    XCTAssertFalse([self.controller canSkipBackward]);
+    XCTAssertFalse([self.controller canSkipWithInterval:15.]);
+    XCTAssertFalse([self.controller canSkipWithInterval:-15.]);
     XCTAssertFalse([self.controller canSkipToLive]);
     
     [self expectationForSingleNotification:SRGLetterboxPlaybackStateDidChangeNotification object:self.controller handler:^BOOL(NSNotification * _Nonnull notification) {
@@ -356,8 +356,8 @@
     
     [self waitForExpectationsWithTimeout:10. handler:nil];
     
-    XCTAssertFalse([self.controller canSkipForward]);
-    XCTAssertFalse([self.controller canSkipBackward]);
+    XCTAssertFalse([self.controller canSkipWithInterval:15.]);
+    XCTAssertFalse([self.controller canSkipWithInterval:-15.]);
     XCTAssertFalse([self.controller canSkipToLive]);
 }
 

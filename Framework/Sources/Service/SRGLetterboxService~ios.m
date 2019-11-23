@@ -430,8 +430,8 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
         commandCenter.playCommand.enabled = YES;
         commandCenter.pauseCommand.enabled = YES;
         commandCenter.togglePlayPauseCommand.enabled = YES;
-        commandCenter.skipForwardCommand.enabled = (self.allowedCommands & SRGLetterboxCommandSkipForward) && [controller canSkipForward];
-        commandCenter.skipBackwardCommand.enabled = (self.allowedCommands & SRGLetterboxCommandSkipBackward) && [controller canSkipBackward];
+        commandCenter.skipForwardCommand.enabled = (self.allowedCommands & SRGLetterboxCommandSkipForward) && [controller canSkipWithInterval:SRGLetterboxForwardSkipInterval];
+        commandCenter.skipBackwardCommand.enabled = (self.allowedCommands & SRGLetterboxCommandSkipBackward) && [controller canSkipWithInterval:-SRGLetterboxBackwardSkipInterval];
         commandCenter.seekForwardCommand.enabled = (self.allowedCommands & SRGLetterboxCommandSeekForward);
         commandCenter.seekBackwardCommand.enabled = (self.allowedCommands & SRGLetterboxCommandSeekBackward);
         commandCenter.nextTrackCommand.enabled = (self.allowedCommands & SRGLetterboxCommandNextTrack) && [controller canPlayNextMedia];
@@ -734,29 +734,33 @@ static MPNowPlayingInfoLanguageOptionGroup *SRGLetterboxServiceLanguageOptionGro
     return MPRemoteCommandHandlerStatusSuccess;
 }
 
-- (MPRemoteCommandHandlerStatus)skipForward:(MPRemoteCommandEvent *)event
+- (MPRemoteCommandHandlerStatus)skipForward:(MPSkipIntervalCommandEvent *)event
 {
-    return [self.controller skipForwardWithCompletionHandler:nil] ? MPRemoteCommandHandlerStatusSuccess : MPRemoteCommandHandlerStatusCommandFailed;
+    return [self.controller skipWithInterval:event.interval completionHandler:nil] ? MPRemoteCommandHandlerStatusSuccess : MPRemoteCommandHandlerStatusCommandFailed;
 }
 
-- (MPRemoteCommandHandlerStatus)skipBackward:(MPRemoteCommandEvent *)event
+- (MPRemoteCommandHandlerStatus)skipBackward:(MPSkipIntervalCommandEvent *)event
 {
-    return [self.controller skipBackwardWithCompletionHandler:nil] ? MPRemoteCommandHandlerStatusSuccess : MPRemoteCommandHandlerStatusCommandFailed;
+    return [self.controller skipWithInterval:-event.interval completionHandler:nil] ? MPRemoteCommandHandlerStatusSuccess : MPRemoteCommandHandlerStatusCommandFailed;
 }
 
 - (MPRemoteCommandHandlerStatus)seekForward:(MPSeekCommandEvent *)event
 {
+#if 0
     if (event.type == MPSeekCommandEventTypeBeginSeeking) {
         return [self.controller skipForwardWithCompletionHandler:nil] ? MPRemoteCommandHandlerStatusSuccess : MPRemoteCommandHandlerStatusCommandFailed;
     }
+#endif
     return MPRemoteCommandHandlerStatusSuccess;
 }
 
 - (MPRemoteCommandHandlerStatus)seekBackward:(MPSeekCommandEvent *)event
 {
+#if 0
     if (event.type == MPSeekCommandEventTypeBeginSeeking) {
         return [self.controller skipBackwardWithCompletionHandler:nil] ? MPRemoteCommandHandlerStatusSuccess : MPRemoteCommandHandlerStatusCommandFailed;
     }
+#endif
     return MPRemoteCommandHandlerStatusSuccess;
 }
 

@@ -108,12 +108,6 @@ static const NSTimeInterval SRGLetterboxChannelDefaultUpdateInterval = 30.;
 static const NSTimeInterval SRGLetterboxChannelMinimumUpdateInterval = 10.;
 
 /**
- *  Standard skip intervals.
- */
-static const NSTimeInterval SRGLetterboxBackwardSkipInterval = 10.;
-static const NSTimeInterval SRGLetterboxForwardSkipInterval = 30.;
-
-/**
  *  Special interval used to disable continuous playback.
  */
 static const NSTimeInterval SRGLetterboxContinuousPlaybackDisabled = DBL_MAX;
@@ -573,19 +567,15 @@ static const NSTimeInterval SRGLetterboxContinuousPlaybackDisabled = DBL_MAX;
 @end
 
 /**
- *  Standard skips.
+ *  Skips (move forward or backward, starting from the current position).
  */
 @interface SRGLetterboxController (Skips)
 
 /**
- *  Return `YES` iff the player can skip backward from `SRGLetterboxBackwardSkipInterval` seconds.
+ *  Return `YES` iff the player can skip with the specified interval (in seconds). Use positive intervals for skipping
+ *  forward, negative ones for skipping backward.
  */
-- (BOOL)canSkipBackward;
-
-/**
- *  Return `YES` iff the player can skip forward from `SRGLetterboxForwardSkipInterval` seconds.
- */
-- (BOOL)canSkipForward;
+- (BOOL)canSkipWithInterval:(NSTimeInterval)interval;
 
 /**
  *  Return `YES` iff the player can skip to live conditions.
@@ -595,24 +585,15 @@ static const NSTimeInterval SRGLetterboxContinuousPlaybackDisabled = DBL_MAX;
 - (BOOL)canSkipToLive;
 
 /**
- *  Skip backward from a `SRGLetterboxBackwardSkipInterval` seconds.
+ *  Skip with the specified interval (in seconds). Use positive intervals for skipping forward, negative ones for
+ *  skipping backward.
  *
  *  @param completionHandler The completion handler called once skipping finishes. The block will only be called when
  *                           skipping is possible, and with `finished` set to `YES` iff skipping was not interrupted.
  *
  *  @return `YES` iff skipping is possible.
  */
-- (BOOL)skipBackwardWithCompletionHandler:(nullable void (^)(BOOL finished))completionHandler;
-
-/**
- *  Skip forward from a `SRGLetterboxForwardSkipInterval` seconds.
- *
- *  @param completionHandler The completion handler called once skipping finishes. The block will only be called when
- *                           skipping is possible, and with `finished` set to `YES` iff skipping was not interrupted.
- *
- *  @return `YES` iff skipping is possible.
- */
-- (BOOL)skipForwardWithCompletionHandler:(nullable void (^)(BOOL finished))completionHandler;
+- (BOOL)skipWithInterval:(NSTimeInterval)interval completionHandler:(nullable void (^)(BOOL finished))completionHandler;
 
 /**
  *  Skip forward to live conditions.

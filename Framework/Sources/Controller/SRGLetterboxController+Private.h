@@ -11,6 +11,12 @@
 NS_ASSUME_NONNULL_BEGIN
 
 /**
+ *  Standard skip intervals.
+ */
+static const NSTimeInterval SRGLetterboxBackwardSkipInterval = 10.;
+static const NSTimeInterval SRGLetterboxForwardSkipInterval = 30.;
+
+/**
  *  Notification sent when the livestream associated with the current playback context just finished. The corresponding
  *  media can be retrieved under the `SRGLetterboxMediaKey` user information key.
  */

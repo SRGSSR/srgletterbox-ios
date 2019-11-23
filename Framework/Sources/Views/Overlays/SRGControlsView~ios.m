@@ -219,8 +219,8 @@
         self.timeSlider.alpha = 0.f;
     }
     else {
-        self.forwardSeekButton.alpha = [self.controller canSkipForward] ? 1.f : 0.f;
-        self.backwardSeekButton.alpha = [self.controller canSkipBackward] ? 1.f : 0.f;
+        self.forwardSeekButton.alpha = [self.controller canSkipWithInterval:SRGLetterboxForwardSkipInterval] ? 1.f : 0.f;
+        self.backwardSeekButton.alpha = [self.controller canSkipWithInterval:-SRGLetterboxBackwardSkipInterval] ? 1.f : 0.f;
         self.skipToLiveButton.alpha = [self.controller canSkipToLive] ? 1.f : 0.f;
         
         SRGMediaPlayerStreamType streamType = self.controller.mediaPlayerController.streamType;
@@ -398,14 +398,14 @@
 
 - (IBAction)skipBackward:(id)sender
 {
-    [self.controller skipBackwardWithCompletionHandler:^(BOOL finished) {
+    [self.controller skipWithInterval:-SRGLetterboxBackwardSkipInterval completionHandler:^(BOOL finished) {
         [self timeSlider:self.timeSlider isMovingToPlaybackTime:self.timeSlider.time withValue:self.timeSlider.value interactive:YES];
     }];
 }
 
 - (IBAction)skipForward:(id)sender
 {
-    [self.controller skipForwardWithCompletionHandler:^(BOOL finished) {
+    [self.controller skipWithInterval:SRGLetterboxForwardSkipInterval completionHandler:^(BOOL finished) {
         [self timeSlider:self.timeSlider isMovingToPlaybackTime:self.timeSlider.time withValue:self.timeSlider.value interactive:YES];
     }];
 }
