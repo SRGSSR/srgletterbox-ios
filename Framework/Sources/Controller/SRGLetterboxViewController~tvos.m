@@ -78,18 +78,13 @@ static UIView *SRGLetterboxViewControllerLoadingIndicatorSubview(UIView *view)
         
         self.imageOperations = [NSMutableDictionary dictionary];
         
-        @weakify(self)
-        self.periodicTimeObserver = [controller addPeriodicTimeObserverForInterval:CMTimeMakeWithSeconds(1., NSEC_PER_SEC) queue:NULL usingBlock:^(CMTime time) {
+        @weakify(self) @weakify(controller)
+        [controller addObserver:self keyPath:@keypath(controller.program) options:0 block:^(MAKVONotification *notification) {
             @strongify(self)
-            
-            [self updateMainLayout];
             [self reloadImage];
         }];
-        
-        @weakify(controller)
         [controller addObserver:self keyPath:@keypath(controller.continuousPlaybackUpcomingMedia) options:0 block:^(MAKVONotification *notification) {
-            @strongify(controller)
-            @strongify(self)
+            @strongify(self) @strongify(controller)
             
             SRGMedia *upcomingMedia = controller.continuousPlaybackUpcomingMedia;
             if (upcomingMedia) {
@@ -122,10 +117,20 @@ static UIView *SRGLetterboxViewControllerLoadingIndicatorSubview(UIView *view)
                                                    name:SRGLetterboxPlaybackDidContinueAutomaticallyNotification
                                                  object:controller];
         
+        SRGMediaPlayerController *mediaPlayerController = controller.mediaPlayerController;
+        [mediaPlayerController addObserver:self keyPath:@keypath(mediaPlayerController.mediaType) options:0 block:^(MAKVONotification *notification) {
+            @strongify(self)
+            [self updateMainLayout];
+        }];
+        [mediaPlayerController addObserver:self keyPath:@keypath(mediaPlayerController.live) options:0 block:^(MAKVONotification *notification) {
+            @strongify(self)
+            [self updateMainLayout];
+        }];
+        
         [NSNotificationCenter.defaultCenter addObserver:self
                                                selector:@selector(willSkipBlockedSegment:)
                                                    name:SRGMediaPlayerWillSkipBlockedSegmentNotification
-                                                 object:controller.mediaPlayerController];
+                                                 object:mediaPlayerController];
     }
     return self;
 }
@@ -249,7 +254,9 @@ static UIView *SRGLetterboxViewControllerLoadingIndicatorSubview(UIView *view)
     }
     
     if (! self.imageOperations[imageURL]) {
+        @weakify(self)
         YYWebImageOperation *imageOperation = [webImageManager requestImageWithURL:imageURL options:0 progress:nil transform:nil completion:^(UIImage * _Nullable image, NSURL * _Nonnull url, YYWebImageFromType from, YYWebImageStage stage, NSError * _Nullable error) {
+            @strongify(self)
             dispatch_async(dispatch_get_main_queue(), ^{
                 self.imageOperations[imageURL] = nil;
                 completion();
@@ -266,6 +273,7 @@ static UIView *SRGLetterboxViewControllerLoadingIndicatorSubview(UIView *view)
 - (void)reloadData
 {
     [self.playerViewController reloadData];
+    [self updateMainLayout];
     [self reloadImage];
 }
 
@@ -434,7 +442,9 @@ static UIView *SRGLetterboxViewControllerLoadingIndicatorSubview(UIView *view)
         descriptionItem.value = [self fullSummaryForMedia:media];
         descriptionItem.extendedLanguageTag = @"und";
         
+        @weakify(self)
         UIImage *image = [self imageForMetadata:media withCompletion:^{
+            @strongify(self)
             [self reloadData];
         }];
         
@@ -460,7 +470,9 @@ static UIView *SRGLetterboxViewControllerLoadingIndicatorSubview(UIView *view)
         titleItem.value = segment.title;
         titleItem.extendedLanguageTag = @"und";
         
+        @weakify(self)
         UIImage *image = [self imageForMetadata:segment withCompletion:^{
+            @strongify(self)
             [self reloadData];
         }];
         
