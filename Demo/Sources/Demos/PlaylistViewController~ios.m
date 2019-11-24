@@ -126,8 +126,8 @@
 
 - (void)updatePlaylistButtons
 {
-    self.previousButton.hidden = (! self.letterboxController.previousMedia);
-    self.nextButton.hidden = (! self.letterboxController.nextMedia);
+    self.previousButton.hidden = ! [self.letterboxController canPlayPreviousMedia];
+    self.nextButton.hidden = ! [self.letterboxController canPlayNextMedia];
 }
 
 - (void)updateContinuousPlaybackLabelWithText:(NSString *)text
