@@ -111,9 +111,9 @@ static NSString *SRGLocalizedUppercaseString(NSString *string)
     
     if (self.movingToParentViewController || self.beingPresented) {
         self.timer = [NSTimer srgletterbox_timerWithTimeInterval:1. repeats:YES block:^(NSTimer * _Nonnull timer) {
-            [self reloadTimeData];
+            [self reloadTimeInformation];
         }];
-        [self reloadTimeData];
+        [self reloadTimeInformation];
     }
 }
 
@@ -153,7 +153,7 @@ static NSString *SRGLocalizedUppercaseString(NSString *string)
     [self.upcomingThumbnailButton.imageView srg_requestImageForObject:self.upcomingMedia withScale:SRGImageScaleMedium type:SRGImageTypeDefault placeholder:SRGLetterboxImagePlaceholderMedia];
 }
 
-- (void)reloadTimeData
+- (void)reloadTimeInformation
 {
     static NSDateComponentsFormatter *s_dateComponentsFormatter;
     static dispatch_once_t s_onceToken;

@@ -68,8 +68,6 @@ static void commonInit(SRGLetterboxView *self);
 @property (nonatomic, copy) void (^animations)(BOOL hidden, BOOL minimal, CGFloat heightOffset);
 @property (nonatomic, copy) void (^completion)(BOOL finished);
 
-@property (nonatomic) NSTimer *periodicUpdateTimer;
-
 @end
 
 @implementation SRGLetterboxView {
@@ -140,7 +138,6 @@ static void commonInit(SRGLetterboxView *self);
     
     if (newWindow) {
         [self restartInactivityTracker];
-        [self startPeriodicUpdates];
         
         @weakify(self)
         [self.controller addObserver:self keyPath:@keypath(SRGLetterboxController.new, mediaPlayerController.player.externalPlaybackActive) options:0 block:^(MAKVONotification *notification) {
@@ -168,7 +165,6 @@ static void commonInit(SRGLetterboxView *self);
     }
     else {
         [self stopInactivityTracker];
-        [self stopPeriodicUpdates];
         [self dismissNotificationViewAnimated:NO];
         
         [self.controller removeObserver:self keyPath:@keypath(SRGLetterboxController.new, mediaPlayerController.player.externalPlaybackActive)];
@@ -323,12 +319,6 @@ static void commonInit(SRGLetterboxView *self);
 {
     [_inactivityTimer invalidate];
     _inactivityTimer = inactivityTimer;
-}
-
-- (void)setPeriodicUpdateTimer:(NSTimer *)periodicUpdateTimer
-{
-    [_periodicUpdateTimer invalidate];
-    _periodicUpdateTimer = periodicUpdateTimer;
 }
 
 - (SRGLetterboxViewBehavior)userInterfaceBehavior
@@ -703,21 +693,6 @@ static void commonInit(SRGLetterboxView *self);
 - (void)stopInactivityTracker
 {
     self.inactivityTimer = nil;
-}
-
-- (void)startPeriodicUpdates
-{
-    // FIXME: Avoid, use KVO if possible
-    @weakify(self)
-    self.periodicUpdateTimer = [NSTimer srgletterbox_timerWithTimeInterval:1. repeats:YES block:^(NSTimer * _Nonnull timer) {
-        @strongify(self)
-        [self setNeedsLayoutAnimated:YES];
-    }];
-}
-
-- (void)stopPeriodicUpdates
-{
-    self.periodicUpdateTimer = nil;
 }
 
 #pragma mark Notification banners
