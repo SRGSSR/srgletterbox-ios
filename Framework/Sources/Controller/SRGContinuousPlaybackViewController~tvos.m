@@ -102,7 +102,7 @@ static NSString *SRGLocalizedUppercaseString(NSString *string)
     [self.view addGestureRecognizer:tapGestureRecognizer];
     
     [self setupFocusGuides];
-    [self reloadData];
+    [self reloadMetadata];
 }
 
 - (void)viewWillAppear:(BOOL)animated
@@ -111,9 +111,9 @@ static NSString *SRGLocalizedUppercaseString(NSString *string)
     
     if (self.movingToParentViewController || self.beingPresented) {
         self.timer = [NSTimer srgletterbox_timerWithTimeInterval:1. repeats:YES block:^(NSTimer * _Nonnull timer) {
-            [self reloadData];
+            [self reloadTimeData];
         }];
-        [self reloadData];
+        [self reloadTimeData];
     }
 }
 
@@ -128,7 +128,7 @@ static NSString *SRGLocalizedUppercaseString(NSString *string)
 
 #pragma mark UI
 
-- (void)reloadData
+- (void)reloadMetadata
 {
     self.titleLabel.text = self.media.title;
     self.titleLabel.isAccessibilityElement = NO;
@@ -149,6 +149,12 @@ static NSString *SRGLocalizedUppercaseString(NSString *string)
     self.upcomingSummaryLabel.text = self.upcomingMedia.summary;
     self.upcomingSummaryLabel.isAccessibilityElement = NO;
     
+    self.upcomingThumbnailButton.accessibilityHint = SRGLetterboxAccessibilityLocalizedString(@"Plays the content.", @"Segment or chapter cell hint");
+    [self.upcomingThumbnailButton.imageView srg_requestImageForObject:self.upcomingMedia withScale:SRGImageScaleMedium type:SRGImageTypeDefault placeholder:SRGLetterboxImagePlaceholderMedia];
+}
+
+- (void)reloadTimeData
+{
     static NSDateComponentsFormatter *s_dateComponentsFormatter;
     static dispatch_once_t s_onceToken;
     dispatch_once(&s_onceToken, ^{
@@ -168,9 +174,6 @@ static NSString *SRGLocalizedUppercaseString(NSString *string)
     }
     
     self.upcomingThumbnailButton.accessibilityLabel = [NSString stringWithFormat:@"%@, %@", self.upcomingMedia.title, remainingTimeDescription];
-    self.upcomingThumbnailButton.accessibilityHint = SRGLetterboxAccessibilityLocalizedString(@"Plays the content.", @"Segment or chapter cell hint");
-    [self.upcomingThumbnailButton.imageView srg_requestImageForObject:self.upcomingMedia withScale:SRGImageScaleMedium type:SRGImageTypeDefault placeholder:SRGLetterboxImagePlaceholderMedia];
-    
     self.remainingTimeLabel.text = remainingTimeDescription;
 }
 
